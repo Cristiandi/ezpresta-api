@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres
+    container_name: ezpresta_db
+    restart: "no"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: toor
+      POSTGRES_DB: ezpresta
