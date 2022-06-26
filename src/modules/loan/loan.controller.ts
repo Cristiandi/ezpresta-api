@@ -45,7 +45,7 @@ export class LoanController {
     return this.loanService.getUserLoans(params, query);
   }
 
-  @Public()
+  @PermissionName('loans:user:read')
   @Get('details/:loanUid')
   getLoanDetails(@Param() params: GetLoanDetailsInput) {
     return this.loanService.getLoanDetails(params);
