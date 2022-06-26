@@ -1,12 +1,15 @@
-import { IsNumber, IsString } from 'class-validator';
+import { IsDateString, IsNumber, IsString } from 'class-validator';
 
 export class CreatePaymentMovementInput {
-  @IsString()
-  readonly key: string;
-
   @IsString()
   readonly loanUid: string;
 
   @IsNumber()
   readonly amount: number;
+
+  @IsDateString({
+    format: 'YYYY-MM-DD',
+    length: 10,
+  })
+  readonly paymentDate: string;
 }

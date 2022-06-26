@@ -2,9 +2,6 @@ import { IsDateString, IsNumber, IsString } from 'class-validator';
 
 export class CreateLoanInput {
   @IsString()
-  key: string;
-
-  @IsString()
   readonly userAuthUid: string;
 
   @IsNumber()
@@ -21,4 +18,7 @@ export class CreateLoanInput {
     length: 10,
   })
   readonly startDate: string;
+
+  @IsString()
+  readonly description: string;
 }

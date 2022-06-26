@@ -1,19 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
 import { BasicAclModule } from 'nestjs-basic-acl-sdk';
 
-import appConfig from '../../config/app.config';
+import appConfig from '../config/app.config';
 
-import { User } from './user.entity';
-
-import { UserService } from './user.service';
-import { UserController } from './user.controller';
+import { AuthorizationGuard } from './guards/authorization.guard';
 
 @Module({
   imports: [
     ConfigModule.forFeature(appConfig),
-    TypeOrmModule.forFeature([User]),
     BasicAclModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -25,8 +21,11 @@ import { UserController } from './user.controller';
       },
     }),
   ],
-  providers: [UserService],
-  exports: [UserService],
-  controllers: [UserController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AuthorizationGuard,
+    },
+  ],
 })
-export class UserModule {}
+export class CommonModule {}

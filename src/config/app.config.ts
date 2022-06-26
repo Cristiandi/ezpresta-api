@@ -18,5 +18,9 @@ export default registerAs('config', () => {
       database: process.env.DATABASE_NAME,
       log: process.env.DATABASE_LOG || 'yes',
     },
+    acl: {
+      companyUid: process.env.BASIC_ACL_COMPANY_UID,
+      accessKey: process.env.BASIC_ACL_ACCESS_KEY,
+    },
   };
 });

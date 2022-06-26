@@ -1,10 +1,4 @@
-import {
-  forwardRef,
-  Inject,
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -20,8 +14,10 @@ import { MovementService } from '../movement/movement.service';
 import { addMinutes } from '../../utils';
 
 import { CreateLoanInput } from './dto/create-loan-input.dto';
-
-import { InterestSettlementInput } from './dto/interest-settlement-input.dto';
+import { GetUserLoansParamsInput } from './dto/get-user-loans-params-input.dto';
+import { GetUserLoansQueryInput } from './dto/get-user-loans-query-input.dto';
+import { UserLoansOutput } from './dto/user-loans-output.dto';
+import { GetLoanDetailsInput } from './dto/get-loan-details-input.dto';
 
 @Injectable()
 export class LoanService extends BaseService<Loan> {
@@ -37,17 +33,8 @@ export class LoanService extends BaseService<Loan> {
     super(loanRepository);
   }
 
+  // function to create a loan
   public async create(input: CreateLoanInput): Promise<Loan> {
-    const { key } = input;
-
-    const {
-      app: { apiKey },
-    } = this.appConfiguration;
-
-    if (key !== apiKey) {
-      throw new UnauthorizedException('invalid key');
-    }
-
     const { userAuthUid } = input;
 
     // check if the user exists
@@ -56,6 +43,7 @@ export class LoanService extends BaseService<Loan> {
         authUid: userAuthUid,
       },
       checkIfExists: true,
+      loadRelationIds: false,
     });
 
     // create the loan
@@ -64,6 +52,7 @@ export class LoanService extends BaseService<Loan> {
       monthlyInterestRate,
       monthlyInterestOverdueRate,
       startDate,
+      description,
     } = input;
 
     const parsedStartDate = new Date(startDate);
@@ -79,6 +68,7 @@ export class LoanService extends BaseService<Loan> {
         parsedStartDate,
         parsedStartDate.getTimezoneOffset(),
       ),
+      description,
     });
 
     const savedLoan = await this.loanRepository.save(createdLoan);
@@ -93,19 +83,8 @@ export class LoanService extends BaseService<Loan> {
     return savedLoan;
   }
 
-  public async interestSettlement(
-    input: InterestSettlementInput,
-  ): Promise<void> {
-    const { key } = input;
-
-    const {
-      app: { apiKey },
-    } = this.appConfiguration;
-
-    if (key !== apiKey) {
-      throw new UnauthorizedException('invalid key');
-    }
-
+  // function to settle the loans interests
+  public async interestSettlement(): Promise<void> {
     const loans = await this.loanRepository.find();
 
     (async () => {
@@ -120,5 +99,117 @@ export class LoanService extends BaseService<Loan> {
         });
       }
     })();
+  }
+
+  // function to get the user loans
+  public async getUserLoans(
+    paramsInput: GetUserLoansParamsInput,
+    queryInput: GetUserLoansQueryInput,
+  ): Promise<UserLoansOutput[]> {
+    const { userAuthUid } = paramsInput;
+    const { limit } = queryInput;
+
+    // get the user
+    const user = await this.userService.getOneByFields({
+      fields: {
+        authUid: userAuthUid,
+      },
+      checkIfExists: true,
+      loadRelationIds: false,
+    });
+
+    // get the loans
+    const loans = await this.loanRepository.find({
+      where: {
+        user,
+      },
+      take: limit ? parseInt(limit, 10) : undefined,
+    });
+
+    const userLoans = await Promise.all(
+      loans.map(async (loan) => {
+        const { uid } = loan;
+
+        const [minimumLoanPaymentAmount, loanPaymentDate, loanPaymentStatus] =
+          await Promise.all([
+            this.movementService.getMinimumLoanPaymentAmount({
+              loanUid: uid,
+            }),
+            this.movementService.getLoanPaymentDate({
+              loanUid: uid,
+            }),
+            this.movementService.getLoanPaymentStatus({
+              loanUid: uid,
+            }),
+          ]);
+
+        return {
+          id: loan.id,
+          uid,
+          description: loan.description,
+          minimumLoanPaymentAmount,
+          loanPaymentDate,
+          loanPaymentStatus,
+        };
+      }),
+    );
+
+    return userLoans;
+  }
+
+  // function to get the loan details
+  public async getLoanDetails(input: GetLoanDetailsInput): Promise<any> {
+    const { loanUid } = input;
+
+    // get the loan
+    const loan = await this.getOneByFields({
+      fields: {
+        uid: loanUid,
+      },
+      checkIfExists: true,
+      loadRelationIds: false,
+    });
+
+    const [
+      minimumLoanPaymentAmount,
+      loanPaymentDate,
+      loanPaymentStatus,
+      totalLoanAmount,
+    ] = await Promise.all([
+      this.movementService.getMinimumLoanPaymentAmount({
+        loanUid: loan.uid,
+      }),
+      this.movementService.getLoanPaymentDate({
+        loanUid: loan.uid,
+      }),
+      this.movementService.getLoanPaymentStatus({
+        loanUid: loan.uid,
+      }),
+      this.movementService.getTotalLoanAmount({
+        loanUid: loan.uid,
+      }),
+    ]);
+
+    const {
+      id,
+      uid,
+      description,
+      amount,
+      monthlyInterestRate,
+      monthlyInterestOverdueRate,
+    } = loan;
+
+    return {
+      id,
+      uid,
+      description,
+      amount,
+      monthlyInterestRate,
+      monthlyInterestOverdueRate,
+      minimumLoanPaymentAmount,
+      loanPaymentDate,
+      loanPaymentStatus,
+      totalLoanAmount,
+    };
   }
 }

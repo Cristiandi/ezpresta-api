@@ -14,12 +14,12 @@ import { LoanService } from '../../../modules/loan/loan.service';
   Logger.log('INIT');
 
   await loanService.create({
-    key: '123',
     userAuthUid: 'pending',
     amount: 6000000,
     monthlyInterestRate: 0.025,
     monthlyInterestOverdueRate: 0.05,
     startDate: '2022-04-15',
+    description: 'test loan',
   });
 
   Logger.log('END');

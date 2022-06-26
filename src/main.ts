@@ -17,6 +17,8 @@ async function bootstrap() {
   // getting the environment var
   const ENV = configService.get<string>('config.environment');
 
+  app.enableCors();
+
   await app.listen(PORT, () => {
     Logger.log(`app listening at ${PORT} in ${ENV}`, 'main.ts');
   });

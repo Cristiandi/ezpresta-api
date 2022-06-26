@@ -8,6 +8,8 @@ import ormConfig from './config/orm.config';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+
+import { CommonModule } from './common/common.module';
 import { UserModule } from './modules/user/user.module';
 import { LoanModule } from './modules/loan/loan.module';
 import { MovementTypeModule } from './modules/movement-type/movement-type.module';
@@ -34,6 +36,8 @@ import { MovementModule } from './modules/movement/movement.module';
         };
       },
     }),
+
+    CommonModule,
 
     UserModule,
 

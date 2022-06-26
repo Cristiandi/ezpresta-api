@@ -1,6 +1,6 @@
 import { IsString } from 'class-validator';
 
-export class InterestSettlementInput {
+export class GetOneUserInput {
   @IsString()
-  key: string;
+  authUid: string;
 }

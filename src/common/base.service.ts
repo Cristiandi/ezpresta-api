@@ -13,13 +13,25 @@ export class BaseService<Entity extends BaseEntity> {
       fields,
       relations,
       checkIfExists = false,
-      loadRelationIds = false,
+      loadRelationIds = true,
     } = input;
 
+    // create a simpler fields object
+    const fieldsToDoWhere = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (typeof value === 'object' && value.hasOwnProperty('id')) {
+        fieldsToDoWhere[key] = {
+          id: value.id,
+        };
+      } else {
+        fieldsToDoWhere[key] = value;
+      }
+    }
+
     const existing = await this.repository.findOne({
-      loadRelationIds: loadRelationIds,
-      where: { ...fields },
+      where: { ...(fieldsToDoWhere as any) },
       relations,
+      loadRelationIds: !relations?.length && loadRelationIds ? true : false,
     });
 
     if (!existing && checkIfExists) {
@@ -45,9 +57,21 @@ export class BaseService<Entity extends BaseEntity> {
   public async getManyByFields(input: GetByFieldsInput): Promise<Entity[]> {
     const { fields, relations } = input;
 
+    // create a simpler fields object
+    const fieldsToDoWhere = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (typeof value === 'object' && value.hasOwnProperty('id')) {
+        fieldsToDoWhere[key] = {
+          id: value.id,
+        };
+      } else {
+        fieldsToDoWhere[key] = value;
+      }
+    }
+
     return await this.repository.find({
       loadRelationIds: !relations?.length ? true : false,
-      where: { ...fields },
+      where: { ...(fieldsToDoWhere as any) },
       relations,
     });
   }

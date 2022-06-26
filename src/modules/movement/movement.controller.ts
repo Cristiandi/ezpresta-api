@@ -8,6 +8,7 @@ import {
 import { Movement } from './movement.entity';
 
 import { MovementService } from './movement.service';
+import { PermissionName } from 'nestjs-basic-acl-sdk';
 
 import { CreatePaymentMovementInput } from './dto/create-payment-movement-input.dto';
 
@@ -16,6 +17,7 @@ import { CreatePaymentMovementInput } from './dto/create-payment-movement-input.
 export class MovementController {
   constructor(private readonly movementService: MovementService) {}
 
+  @PermissionName('movements:handle')
   @Post('payment')
   createPaymentMovement(
     @Body() input: CreatePaymentMovementInput,

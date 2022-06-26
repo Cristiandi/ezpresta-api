@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -17,13 +18,18 @@ import { BaseService } from '../../common/base.service';
 import { LoanService } from '../loan/loan.service';
 import { MovementTypeService } from '../movement-type/movement-type.service';
 
-import { addDays, getNumberOfDays } from '../../utils';
+import { addDays, getNumberOfDays, addMinutes } from '../../utils';
 
-import { GetLoanValueToSettleInterestInput } from './dto/get-loan-value-to-settle-interest-input.dto';
+import { GetLoanAmountToSettleInterestInput } from './dto/get-loan-amount-to-settle-interest-input.dto';
 import { SettleLoanInterestsInput } from './dto/settle-loan-interests-input.dto';
 import { CreateLoanMovementInput } from './dto/create-loan-movement-input.dto';
 import { GetLoanMovementInput } from './dto/get-loan-movement-input.dto';
 import { CreatePaymentMovementInput } from './dto/create-payment-movement-input.dto';
+import { GetMinimumLoanPaymentAmountInput } from './dto/get-minimum-loan-payment-amount-input.dto';
+import { GetLastPaymentMovementInput } from './dto/get-last-payment-movement-input.dto';
+import { GetLoanPaymentDateInput } from './dto/get-loan-payment-date-input.dto';
+import { GetLoanPaymentStatusInput } from './dto/get-loan-payment-status-input.dto';
+import { GetTotalLoanAmountInput } from './dto/get-total-loan-amount-input.dto';
 
 @Injectable()
 export class MovementService extends BaseService<Movement> {
@@ -48,12 +54,14 @@ export class MovementService extends BaseService<Movement> {
     const existingLoan = await this.loanService.getOneByFields({
       fields: { uid: loanUid },
       checkIfExists: true,
+      loadRelationIds: false,
     });
 
     // get the movement type
     const loanType = await this.movementTypeService.getOneByFields({
       fields: { code: '01P' },
       checkIfExists: true,
+      loadRelationIds: false,
     });
 
     // create the loan movement
@@ -74,38 +82,40 @@ export class MovementService extends BaseService<Movement> {
   public async createPaymentMovement(
     input: CreatePaymentMovementInput,
   ): Promise<Movement> {
-    const { key } = input;
-
-    const {
-      app: { apiKey },
-    } = this.appConfiguration;
-
-    if (key !== apiKey) {
-      throw new UnauthorizedException('invalid key');
-    }
-
     const { loanUid } = input;
 
-    // get the loan
-    const existingLoan = await this.loanService.getOneByFields({
-      fields: { uid: loanUid },
-      checkIfExists: true,
+    // get the loan movement
+    const loanMovement = await this.getLoanMovement({
+      loanUid,
     });
+
+    if (!loanMovement) {
+      throw new NotFoundException(
+        `no loan movement found for the loan ${loanUid}`,
+      );
+    }
 
     // get the movement type
     const paymentType = await this.movementTypeService.getOneByFields({
       fields: { code: '04P' },
       checkIfExists: true,
+      loadRelationIds: false,
     });
 
     // create the loan movement
     const { amount } = input;
 
+    const { loan } = loanMovement;
+
+    const { paymentDate } = input;
+
+    const parsedPaymentDate = new Date(paymentDate);
+
     const created = this.movementRepository.create({
-      loan: existingLoan,
+      loan: loan,
       movementType: paymentType,
       amount: amount * -1,
-      at: existingLoan.startDate,
+      at: addMinutes(parsedPaymentDate, parsedPaymentDate.getTimezoneOffset()),
     });
 
     const saved = await this.movementRepository.save(created);
@@ -115,20 +125,22 @@ export class MovementService extends BaseService<Movement> {
 
   private async getLoanMovement(
     input: GetLoanMovementInput,
-  ): Promise<Movement> {
+  ): Promise<Movement | undefined> {
     const { loanUid } = input;
 
     const existingLoan = await this.loanService.getOneByFields({
       fields: { uid: loanUid },
       checkIfExists: true,
+      loadRelationIds: false,
     });
 
     const loanType = await this.movementTypeService.getOneByFields({
       fields: { code: '01P' },
       checkIfExists: true,
+      loadRelationIds: false,
     });
 
-    const movement = await this.movementRepository
+    const loanMovement = await this.movementRepository
       .createQueryBuilder('m')
       .where('m.loan = :loanId', { loanId: existingLoan.id })
       .andWhere('m.movementType = :movementTypeId', {
@@ -136,20 +148,75 @@ export class MovementService extends BaseService<Movement> {
       })
       .getOne();
 
+    if (!loanMovement) {
+      return undefined;
+    }
+
     return {
-      ...movement,
+      ...loanMovement,
       loan: existingLoan,
+      movementType: loanType,
     } as Movement;
   }
 
-  private async getLoanValueToSettleInterest(
-    input: GetLoanValueToSettleInterestInput,
+  private async getLastPaymentMovement(
+    input: GetLastPaymentMovementInput,
+  ): Promise<Movement | undefined> {
+    const { loanUid } = input;
+
+    const [loanMovement, paymentType] = await Promise.all([
+      this.getLoanMovement({
+        loanUid,
+      }),
+      this.movementTypeService.getOneByFields({
+        fields: { code: '04P' },
+        checkIfExists: true,
+        loadRelationIds: false,
+      }),
+    ]);
+
+    if (!loanMovement) {
+      throw new NotFoundException(
+        `no loan movement found for the loan ${loanUid}`,
+      );
+    }
+
+    const { loan } = loanMovement;
+
+    // get the last payment movement
+    const query = this.movementRepository
+      .createQueryBuilder('m')
+      .where('m.loan = :loanId', { loanId: loan.id })
+      .andWhere('m.movementType = :movementTypeId', {
+        movementTypeId: paymentType.id,
+      })
+      .orderBy('m.at', 'DESC')
+      .limit(1);
+
+    const lastPaymentMovement = await query.getOne();
+
+    if (!lastPaymentMovement) {
+      return undefined;
+    }
+
+    return {
+      ...lastPaymentMovement,
+      loan,
+      movementType: paymentType,
+    } as Movement;
+  }
+
+  // this function returns the reference amount from the loan
+  // that will be used to calculate the interest
+  private async getLoanAmountToSettleInterest(
+    input: GetLoanAmountToSettleInterestInput,
   ): Promise<number> {
     const { loanUid } = input;
 
     const existingLoan = await this.loanService.getOneByFields({
       fields: { uid: loanUid },
       checkIfExists: true,
+      loadRelationIds: false,
     });
 
     const { settlementDate } = input;
@@ -171,6 +238,12 @@ export class MovementService extends BaseService<Movement> {
 
     const loanMovement = await this.getLoanMovement({ loanUid });
 
+    if (!loanMovement) {
+      throw new NotFoundException(
+        `no loan movement found for the loan ${loanUid}`,
+      );
+    }
+
     const { loan } = loanMovement;
 
     // get the movement types
@@ -178,14 +251,17 @@ export class MovementService extends BaseService<Movement> {
       this.movementTypeService.getOneByFields({
         fields: { code: '02IC' },
         checkIfExists: true,
+        loadRelationIds: false,
       }),
       this.movementTypeService.getOneByFields({
         fields: { code: '03IM' },
         checkIfExists: true,
+        loadRelationIds: false,
       }),
       this.movementTypeService.getOneByFields({
         fields: { code: '04P' },
         checkIfExists: true,
+        loadRelationIds: false,
       }),
     ]);
 
@@ -220,10 +296,12 @@ export class MovementService extends BaseService<Movement> {
       : loanMovement.at;
 
     // get the loan value to settle interest
-    const loanValueToSettleInterest = await this.getLoanValueToSettleInterest({
-      loanUid,
-      settlementDate: referenceOverDueDate,
-    });
+    const loanAmountToSettleInterest = await this.getLoanAmountToSettleInterest(
+      {
+        loanUid,
+        settlementDate: referenceOverDueDate,
+      },
+    );
 
     // console.log('loanValueToSettleInterest', loanValueToSettleInterest);
 
@@ -268,8 +346,8 @@ export class MovementService extends BaseService<Movement> {
 
       const created = this.movementRepository.create({
         amount: isOverdue
-          ? loanValueToSettleInterest * (loan.annualInterestOverdueRate / 360)
-          : loanValueToSettleInterest * (loan.annualInterestRate / 360),
+          ? loanAmountToSettleInterest * (loan.annualInterestOverdueRate / 360)
+          : loanAmountToSettleInterest * (loan.annualInterestRate / 360),
         at: iterationDate, // addMinutes(iterationDate, iterationDate.getTimezoneOffset()),
         loan,
         movementType: isOverdue ? overdueInterestType : interestType,
@@ -277,5 +355,172 @@ export class MovementService extends BaseService<Movement> {
 
       await this.movementRepository.save(created);
     }
+  }
+
+  // this function returns the minimum paument amount of the loan
+  public async getMinimumLoanPaymentAmount(
+    input: GetMinimumLoanPaymentAmountInput,
+  ): Promise<number> {
+    const { loanUid } = input;
+
+    // get the loan movement
+    const loanMovement = await this.getLoanMovement({ loanUid });
+    if (!loanMovement) {
+      throw new NotFoundException(
+        `no loan movement found for the loan ${loanUid}`,
+      );
+    }
+
+    // get the last payment movement
+    const lastPaymentMovement = await this.getLastPaymentMovement({
+      loanUid,
+    });
+
+    const { loan, movementType: loanType } = loanMovement;
+
+    // in case there is a payment, we need to get the interests generated since the payment
+    if (lastPaymentMovement) {
+      const { movementType: paymentType } = lastPaymentMovement;
+
+      const query = this.movementRepository
+        .createQueryBuilder('m')
+        .select('SUM(m.amount)', 'amount')
+        .where('m.loan = :loanId', { loanId: loan.id })
+        .andWhere('m.movementType NOT IN (:...ids)', {
+          ids: [loanType.id, paymentType.id],
+        })
+        .andWhere('m.at > :settlementDate', {
+          settlementDate: lastPaymentMovement.at,
+        });
+
+      const { amount } = await query.getRawOne();
+
+      return parseFloat(amount);
+    }
+
+    // in case there is no payment, we need to get all the interests generated
+    const query = this.movementRepository
+      .createQueryBuilder('m')
+      .select('SUM(m.amount)', 'amount')
+      .where('m.loan = :loanId', { loanId: loan.id })
+      .andWhere('m.movementType NOT IN (:...ids)', {
+        ids: [loanType.id],
+      });
+
+    const { amount } = await query.getRawOne();
+
+    return amount;
+  }
+
+  // this function returns the loan payment date
+  public async getLoanPaymentDate(
+    input: GetLoanPaymentDateInput,
+  ): Promise<Date> {
+    const { loanUid } = input;
+
+    // get the loan movement
+    const loanMovement = await this.getLoanMovement({ loanUid });
+
+    if (!loanMovement) {
+      throw new NotFoundException(
+        `no loan movement found for the loan ${loanUid}`,
+      );
+    }
+
+    // get the last payment movement
+    const lastPaymentMovement = await this.getLastPaymentMovement({
+      loanUid,
+    });
+
+    if (lastPaymentMovement) {
+      return addDays(lastPaymentMovement.at, 30);
+    }
+
+    return addDays(loanMovement.at, 30);
+  }
+
+  // this function returns the loan payment status
+  public async getLoanPaymentStatus(
+    input: GetLoanPaymentStatusInput,
+  ): Promise<string> {
+    const { loanUid } = input;
+
+    // get the loan movement
+    const loanMovement = await this.getLoanMovement({ loanUid });
+
+    if (!loanMovement) {
+      throw new NotFoundException(
+        `no loan movement found for the loan ${loanUid}`,
+      );
+    }
+
+    // get the
+    const [interestType, overdueInterestType] = await Promise.all([
+      this.movementTypeService.getOneByFields({
+        fields: { code: '02IC' },
+        checkIfExists: true,
+        loadRelationIds: false,
+      }),
+      this.movementTypeService.getOneByFields({
+        fields: { code: '03IM' },
+        checkIfExists: true,
+        loadRelationIds: false,
+      }),
+    ]);
+
+    const { loan } = loanMovement;
+
+    // get the last interest movement
+    const lastInterestMovement = await this.movementRepository
+      .createQueryBuilder('m')
+      .innerJoinAndSelect('m.movementType', 'mt')
+      .where('m.loan = :loanId', { loanId: loan.id })
+      .andWhere('m.movementType IN (:...ids)', {
+        ids: [interestType.id, overdueInterestType.id],
+      })
+      .orderBy('m.at', 'DESC')
+      .limit(1)
+      .getOne();
+
+    if (!lastInterestMovement) {
+      return 'al día';
+    }
+
+    const { movementType } = lastInterestMovement;
+
+    if (movementType.id === interestType.id) {
+      return 'al día';
+    }
+    if (movementType.id === overdueInterestType.id) {
+      return 'atrasado';
+    }
+    return 'no definido';
+  }
+
+  //  this function returns the total loan amount AKA the total amount to pay
+  public async getTotalLoanAmount(
+    input: GetTotalLoanAmountInput,
+  ): Promise<number> {
+    const { loanUid } = input;
+
+    // get the loan movement
+    const loanMovement = await this.getLoanMovement({ loanUid });
+
+    if (!loanMovement) {
+      throw new NotFoundException(
+        `no loan movement found for the loan ${loanUid}`,
+      );
+    }
+
+    // get the total amount of the loan
+    const { loan } = loanMovement;
+
+    const { totalAmount } = await this.movementRepository
+      .createQueryBuilder('m')
+      .select('SUM(m.amount)', 'totalAmount')
+      .where('m.loan = :loanId', { loanId: loan.id })
+      .getRawOne();
+
+    return parseFloat(totalAmount);
   }
 }
