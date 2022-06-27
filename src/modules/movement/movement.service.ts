@@ -582,12 +582,22 @@ export class MovementService extends BaseService<Movement> {
     // get the loan movements
     const { loan } = loanMovement;
 
-    const { limit } = queryInput;
+    const { limit, startDate, endDate } = queryInput;
 
     const query = this.movementRepository
       .createQueryBuilder('m')
       .innerJoinAndSelect('m.movementType', 'mt')
-      .where('m.loan = :loanId', { loanId: loan.id })
+      .where('m.loan = :loanId', { loanId: loan.id });
+
+    if (startDate) {
+      query.andWhere('m.at >= :startDate', { startDate });
+    }
+
+    if (endDate) {
+      query.andWhere('m.at <= :endDate', { endDate });
+    }
+
+    query
       .orderBy('m.at', 'DESC')
       .limit(limit ? parseInt(limit, 10) : undefined);
 
