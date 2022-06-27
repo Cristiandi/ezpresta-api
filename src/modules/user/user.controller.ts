@@ -18,6 +18,7 @@ import { GetOneUserInput } from './dto/get-one-user-input.dto';
 import { ChangeUserEmailInput } from './dto/change-user-email-input.dto';
 import { ChangeUserPhoneInput } from './dto/change-user-phone-input.dto';
 import { ChangeUserAddressInput } from './dto/change-user-address-input.dto';
+import { SendUserResetPasswordEmail } from './dto/send-user-reset-password-email-input.dto';
 
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 @Controller('users')
@@ -58,5 +59,11 @@ export class UserController {
   @Patch('address')
   changeAddress(@Body() input: ChangeUserAddressInput) {
     return this.userService.changeAddress(input);
+  }
+
+  @Public()
+  @Post('reset-password-email')
+  sendResetPasswordEmail(@Body() input: SendUserResetPasswordEmail) {
+    return this.userService.sendResetPasswordEmail(input);
   }
 }

@@ -21,6 +21,7 @@ import { GetOneUserInput } from './dto/get-one-user-input.dto';
 import { ChangeUserEmailInput } from './dto/change-user-email-input.dto';
 import { ChangeUserPhoneInput } from './dto/change-user-phone-input.dto';
 import { ChangeUserAddressInput } from './dto/change-user-address-input.dto';
+import { SendUserResetPasswordEmail } from './dto/send-user-reset-password-email-input.dto';
 
 @Injectable()
 export class UserService extends BaseService<User> {
@@ -255,5 +256,17 @@ export class UserService extends BaseService<User> {
     const updatedUser = await this.userRepository.save(preloadedUser);
 
     return updatedUser;
+  }
+
+  public async sendResetPasswordEmail(input: SendUserResetPasswordEmail) {
+    const { email } = input;
+
+    await this.basicAclService.sendResetPasswordEmail({
+      email,
+    });
+
+    return {
+      message: 'email message was sent',
+    };
   }
 }
