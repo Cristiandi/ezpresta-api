@@ -14,7 +14,7 @@ import { MovementService } from '../../../modules/movement/movement.service';
   Logger.log('INIT');
 
   await movementService.settleLoanInterests({
-    loanUid: 'afee65ee-21dc-4301-be4d-c69eea48a246',
+    loanUid: '',
   });
 
   Logger.log('END');

@@ -4,7 +4,6 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
