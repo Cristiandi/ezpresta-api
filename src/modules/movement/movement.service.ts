@@ -588,7 +588,7 @@ export class MovementService extends BaseService<Movement> {
       .createQueryBuilder('m')
       .innerJoinAndSelect('m.movementType', 'mt')
       .where('m.loan = :loanId', { loanId: loan.id })
-      .orderBy('m.at, mt.id', 'ASC')
+      .orderBy('m.at', 'DESC')
       .limit(limit ? parseInt(limit, 10) : undefined);
 
     const movements = await query.getMany();
