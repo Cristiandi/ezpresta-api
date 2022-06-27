@@ -29,6 +29,8 @@ import { GetLastPaymentMovementInput } from './dto/get-last-payment-movement-inp
 import { GetLoanPaymentDateInput } from './dto/get-loan-payment-date-input.dto';
 import { GetLoanPaymentStatusInput } from './dto/get-loan-payment-status-input.dto';
 import { GetTotalLoanAmountInput } from './dto/get-total-loan-amount-input.dto';
+import { GetLoanPaymentsParamsInput } from './dto/get-loan-payments-params-input.dto';
+import { GetLoanPaymentsQueryInput } from './dto/get-loan-payments-query-input.dto';
 
 @Injectable()
 export class MovementService extends BaseService<Movement> {
@@ -521,5 +523,44 @@ export class MovementService extends BaseService<Movement> {
       .getRawOne();
 
     return parseFloat(totalAmount);
+  }
+
+  public async getLoanPayments(
+    paramsInput: GetLoanPaymentsParamsInput,
+    queryInput: GetLoanPaymentsQueryInput,
+  ): Promise<Movement[]> {
+    const { loanUid } = paramsInput;
+
+    const loanMovement = await this.getLoanMovement({ loanUid });
+    if (!loanMovement) {
+      throw new NotFoundException(
+        `no loan movement found for the loan ${loanUid}`,
+      );
+    }
+
+    // get the payment type
+    const paymentType = await this.movementTypeService.getOneByFields({
+      fields: { code: '04P' },
+      checkIfExists: true,
+      loadRelationIds: false,
+    });
+
+    // get the payments of the loan
+    const { loan } = loanMovement;
+
+    const { limit } = queryInput;
+
+    const query = this.movementRepository
+      .createQueryBuilder('m')
+      .where('m.loan = :loanId', { loanId: loan.id })
+      .andWhere('m.movementType = :paymentTypeId', {
+        paymentTypeId: paymentType.id,
+      })
+      .orderBy('m.at', 'DESC')
+      .limit(limit ? parseInt(limit, 10) : undefined);
+
+    const payments = await query.getMany();
+
+    return payments;
   }
 }
