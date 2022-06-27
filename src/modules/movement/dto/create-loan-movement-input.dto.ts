@@ -1,6 +1,6 @@
-import { IsString } from 'class-validator';
+import { IsUUID } from 'class-validator';
 
 export class CreateLoanMovementInput {
-  @IsString()
+  @IsUUID()
   readonly loanUid: string;
 }

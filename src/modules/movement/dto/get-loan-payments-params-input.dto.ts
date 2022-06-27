@@ -1,7 +1,6 @@
-import { IsString, Length } from 'class-validator';
+import { IsUUID } from 'class-validator';
 
 export class GetLoanPaymentsParamsInput {
-  @Length(5)
-  @IsString()
+  @IsUUID()
   readonly loanUid: string;
 }

@@ -1,7 +1,7 @@
-import { IsDateString, IsNumber, IsString } from 'class-validator';
+import { IsDateString, IsNumber, IsUUID } from 'class-validator';
 
 export class CreatePaymentMovementInput {
-  @IsString()
+  @IsUUID()
   readonly loanUid: string;
 
   @IsNumber()
