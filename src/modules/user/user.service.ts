@@ -22,6 +22,7 @@ import { ChangeUserEmailInput } from './dto/change-user-email-input.dto';
 import { ChangeUserPhoneInput } from './dto/change-user-phone-input.dto';
 import { ChangeUserAddressInput } from './dto/change-user-address-input.dto';
 import { SendUserResetPasswordEmail } from './dto/send-user-reset-password-email-input.dto';
+import { ChangeUserPasswordInput } from './dto/change-user-password-input.dto';
 
 @Injectable()
 export class UserService extends BaseService<User> {
@@ -267,6 +268,41 @@ export class UserService extends BaseService<User> {
 
     return {
       message: 'email message was sent',
+    };
+  }
+
+  public async changePassword(
+    paramInput: GetOneUserInput,
+    bodyInput: ChangeUserPasswordInput,
+  ) {
+    const { authUid } = paramInput;
+
+    const existingUser = await this.getOneByFields({
+      fields: {
+        authUid,
+      },
+      checkIfExists: true,
+      loadRelationIds: false,
+    });
+
+    const { oldPassword, newPassword } = bodyInput;
+
+    try {
+      await this.basicAclService.changePassword({
+        authUid: existingUser.authUid,
+        oldPassword,
+        newPassword,
+        emailTemplateParams: {
+          fullName: existingUser.fullName,
+        },
+      });
+    } catch (error) {
+      Logger.error(error, UserService.name);
+      throw error;
+    }
+
+    return {
+      message: 'password was changed',
     };
   }
 }
