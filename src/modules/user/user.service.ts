@@ -220,10 +220,16 @@ export class UserService extends BaseService<User> {
     const { phone } = input;
 
     // change the phone in the ACL
-    await this.basicAclService.changePhone({
-      authUid: existingUser.authUid,
-      phone: `+57${phone}`,
-    });
+    try {
+      await this.basicAclService.changePhone({
+        authUid: existingUser.authUid,
+        phone: `+57${phone}`,
+      });
+    } catch (error) {
+      if (error?.message.includes('user not found')) {
+        throw new ConflictException(`the phone ${phone} it's already used.`);
+      }
+    }
 
     // update the user in DB
     const preloadedUser = await this.userRepository.preload({
