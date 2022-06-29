@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -297,7 +298,12 @@ export class UserService extends BaseService<User> {
         },
       });
     } catch (error) {
-      Logger.error(error, UserService.name);
+      if (error?.message.includes('incorrect')) {
+        throw new UnauthorizedException(
+          'the password is incorrect.',
+          UserService.name,
+        );
+      }
       throw error;
     }
 
