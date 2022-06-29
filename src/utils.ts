@@ -34,3 +34,11 @@ export const getNumberOfDays = (startDate: Date, endDate: Date) => {
 
   return diffInDays;
 };
+
+// function to format currency
+export const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+  }).format(value);
+};

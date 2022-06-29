@@ -8,6 +8,7 @@ import {
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 
 import appConfig from '../../config/app.config';
 
@@ -41,6 +42,7 @@ export class MovementService extends BaseService<Movement> {
     private readonly appConfiguration: ConfigType<typeof appConfig>,
     @InjectRepository(Movement)
     private readonly movementRepository: Repository<Movement>,
+    private readonly amqpConnection: AmqpConnection,
     @Inject(forwardRef(() => LoanService))
     private readonly loanService: LoanService,
     private readonly movementTypeService: MovementTypeService,
@@ -347,6 +349,7 @@ export class MovementService extends BaseService<Movement> {
 
       // console.log('isOverdue', isOverdue);
 
+      // create the interest movement
       const created = this.movementRepository.create({
         amount: isOverdue
           ? loanAmountToSettleInterest * (loan.annualInterestOverdueRate / 360)
@@ -356,7 +359,38 @@ export class MovementService extends BaseService<Movement> {
         movementType: isOverdue ? overdueInterestType : interestType,
       });
 
-      await this.movementRepository.save(created);
+      // save the movement
+      const saved = await this.movementRepository.save(created);
+
+      // check if the saved movement is an overdue interest movement
+      // in this case, publish an event to notify the user
+      if (saved?.movementType?.id === overdueInterestType.id) {
+        // check if the iteration date YYYY/MM/DD is the same as current date
+        if (
+          iterationDate.getFullYear() === currentDate.getFullYear() &&
+          iterationDate.getMonth() === currentDate.getMonth() &&
+          iterationDate.getDate() === currentDate.getDate()
+        ) {
+          const {
+            rabbitmq: { exchange },
+          } = this.appConfiguration;
+
+          await this.amqpConnection.publish(
+            exchange,
+            `${exchange}.overdue_loan`,
+            {
+              loanUid,
+            },
+          );
+
+          Logger.log(
+            `message published to exchange ${exchange} with input: ${JSON.stringify(
+              input,
+            )}`,
+            MovementService.name,
+          );
+        }
+      }
     }
   }
 

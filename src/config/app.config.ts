@@ -22,5 +22,15 @@ export default registerAs('config', () => {
       companyUid: process.env.BASIC_ACL_COMPANY_UID,
       accessKey: process.env.BASIC_ACL_ACCESS_KEY,
     },
+    rabbitmq: {
+      url: process.env.RABBITMQ_URL,
+      exchange: process.env.RABBITMQ_EXCHANGE,
+      waitForConnection: process.env.RABBITMQ_WAIT_FOR_CONNECTION === '1',
+    },
+    twilio: {
+      accountSid: process.env.TWILIO_ACCOUNT_SID,
+      authToken: process.env.TWILIO_AUTH_TOKEN,
+      messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
+    },
   };
 });

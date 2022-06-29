@@ -18,6 +18,5 @@ import { MovementService } from '../../../modules/movement/movement.service';
   });
 
   Logger.log('END');
-})()
-  .catch((err) => console.error(err))
-  .finally(() => process.exit(0));
+})().catch((err) => console.error(err));
+// .finally(() => process.exit(0));

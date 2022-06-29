@@ -28,6 +28,7 @@
     "seed:run": "npx ts-node ./src/database/seeds"
   },
   "dependencies": {
+    "@golevelup/nestjs-rabbitmq": "2.4.0",
     "@nestjs/common": "8.4.5",
     "@nestjs/config": "2.0.0",
     "@nestjs/core": "8.4.5",
@@ -41,6 +42,7 @@
     "reflect-metadata": "0.1.13",
     "rimraf": "3.0.2",
     "rxjs": "7.5.5",
+    "twilio": "3.77.3",
     "typeorm": "0.2.45"
   },
   "devDependencies": {

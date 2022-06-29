@@ -14,6 +14,7 @@ import { UserModule } from './modules/user/user.module';
 import { LoanModule } from './modules/loan/loan.module';
 import { MovementTypeModule } from './modules/movement-type/movement-type.module';
 import { MovementModule } from './modules/movement/movement.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -46,6 +47,8 @@ import { MovementModule } from './modules/movement/movement.module';
     MovementTypeModule,
 
     MovementModule,
+
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
