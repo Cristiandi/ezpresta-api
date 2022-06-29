@@ -34,28 +34,6 @@ export class AuthorizationGuard implements CanActivate {
 
     if (isPublic) return true;
 
-    // get the request from the context
-    const request = context.switchToHttp().getRequest();
-
-    // try to get the authorization header
-    const authorizationHeader: string =
-      request.headers['Authorization'] || request.headers['authorization'];
-    if (!authorizationHeader) {
-      throw new UnauthorizedException('authorization header not found.');
-    }
-
-    // try to get the token from the authorization header
-    const tokenArray = authorizationHeader.split(' ');
-    if (tokenArray.length !== 2) {
-      throw new UnauthorizedException('invalid token format.');
-    }
-
-    const token = tokenArray[1];
-
-    if (!token) {
-      throw new UnauthorizedException('token not found.');
-    }
-
     // get the permission name from the annotation @PermissionName
     const permissionName = this.reflector.get<string>(
       PERMISSION_NAME_KEY,
@@ -66,11 +44,54 @@ export class AuthorizationGuard implements CanActivate {
       throw new InternalServerErrorException('acl slug not found.');
     }
 
+    // get the request from the context
+    const request = context.switchToHttp().getRequest();
+
+    // try to get the authorization header
+    const authorizationHeader: string =
+      request.headers['Authorization'] || request.headers['authorization'];
+
+    // try to get the api-key header
+    const apiKeyHeader: string =
+      request.headers['Api-Key'] || request.headers['api-key'];
+
+    if (!authorizationHeader && !apiKeyHeader) {
+      throw new UnauthorizedException(
+        `api-key header and authorization header weren't found.`,
+      );
+    }
+
+    let token;
+    if (authorizationHeader) {
+      // try to get the token from the authorization header
+      const tokenArray = authorizationHeader.split(' ');
+      if (tokenArray.length !== 2) {
+        throw new UnauthorizedException('invalid token format.');
+      }
+
+      token = tokenArray[1];
+
+      if (!token) {
+        throw new UnauthorizedException('token not found.');
+      }
+    }
+
+    let apiKey;
+    if (apiKeyHeader) {
+      // try to get the api-key from the api-key header
+      apiKey = apiKeyHeader;
+
+      if (!apiKey) {
+        throw new UnauthorizedException('api-key not found.');
+      }
+    }
+
     // check if the user has the permission to access the resource in the acl
     try {
       const permission = await this.basicAclService.checkPermission({
         token,
         permissionName,
+        apiKey,
       });
 
       /*
