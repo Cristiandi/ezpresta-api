@@ -599,6 +599,7 @@ export class MovementService extends BaseService<Movement> {
 
     query
       .orderBy('m.at', 'DESC')
+      .addOrderBy('mt.id', 'DESC')
       .limit(limit ? parseInt(limit, 10) : undefined);
 
     const movements = await query.getMany();
