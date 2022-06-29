@@ -14,4 +14,13 @@ export default Joi.object({
   DATABASE_PASSWORD: Joi.required(),
   DATABASE_NAME: Joi.required(),
   DATABASE_LOG: Joi.required(),
+
+  // BASIC ACL
+  BASIC_ACL_COMPANY_UID: Joi.required(),
+  BASIC_ACL_ACCESS_KEY: Joi.required(),
+
+  // RABBITMQ
+  RABBITMQ_URL: Joi.required(),
+  RABBITMQ_EXCHANGE: Joi.required(),
+  RABBITMQ_WAIT_FOR_CONNECTION: Joi.required(),
 });
