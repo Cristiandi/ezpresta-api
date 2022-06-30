@@ -254,7 +254,7 @@ export class MovementService extends BaseService<Movement> {
   ): Promise<void> {
     const { loanUid } = input;
 
-    Logger.log(`settling loan interests for ${loanUid}`);
+    Logger.log(`settling loan interests for ${loanUid}`, MovementService.name);
 
     const loanMovement = await this.getLoanMovement({ loanUid });
 
@@ -325,7 +325,12 @@ export class MovementService extends BaseService<Movement> {
 
     // console.log('loanValueToSettleInterest', loanValueToSettleInterest);
 
-    const currentDate = new Date();
+    const currentDateTime = new Date();
+    const currentDate = new Date(
+      currentDateTime.getFullYear(),
+      currentDateTime.getMonth(),
+      currentDateTime.getDate(),
+    );
 
     // get the number of days in order know how many interest movements will be created by day
     const numberOfDays = getNumberOfDays(startDate, currentDate);
@@ -333,7 +338,7 @@ export class MovementService extends BaseService<Movement> {
     let iterationDate = startDate;
 
     // start from 1 to prevent the creation of a movement that didn't happen yet
-    for (let i = 1; i < numberOfDays; i++) {
+    for (let i = numberOfDays > 1 ? 1 : 0; i < numberOfDays; i++) {
       iterationDate = addDays(iterationDate, 1);
 
       // console.log('iterationDate', iterationDate);
@@ -384,7 +389,7 @@ export class MovementService extends BaseService<Movement> {
         if (
           iterationDate.getFullYear() === currentDate.getFullYear() &&
           iterationDate.getMonth() === currentDate.getMonth() &&
-          iterationDate.getDate() === currentDate.getDate() - 1 // TODO: DELETE THIS - 1
+          iterationDate.getDate() === currentDate.getDate()
         ) {
           await this.rabbitLocalModuleService.publishOverdueLoan({
             loanUid: loan.uid,
