@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   forwardRef,
   Inject,
   Injectable,
@@ -117,6 +118,17 @@ export class MovementService extends BaseService<Movement> {
 
     // create the loan movement
     const { amount } = input;
+
+    // check if the payment amount is greater than the minimum loan payment amount
+    const minimumLoanPaymentAmount = await this.getMinimumLoanPaymentAmount({
+      loanUid,
+    });
+
+    if (amount < minimumLoanPaymentAmount) {
+      throw new ConflictException(
+        `the payment amount ${amount} is lower than the minimum loan payment amount ${minimumLoanPaymentAmount}`,
+      );
+    }
 
     const { loan } = loanMovement;
 
