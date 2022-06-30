@@ -1,3 +1,13 @@
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+export const delay = (ms: number) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+};
+
 export const addDays = (date: Date, days: number) => {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
@@ -41,4 +51,8 @@ export const formatCurrency = (value: number) => {
     style: 'currency',
     currency: 'COP',
   }).format(value);
+};
+
+export const getRabbitMQExchangeName = () => {
+  return `${process.env.NODE_ENV}_${process.env.RABBITMQ_EXCHANGE}`;
 };

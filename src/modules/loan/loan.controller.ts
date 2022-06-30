@@ -8,7 +8,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { PermissionName, Public } from 'nestjs-basic-acl-sdk';
+import { PermissionName } from 'nestjs-basic-acl-sdk';
 
 import { Loan } from './loan.entity';
 

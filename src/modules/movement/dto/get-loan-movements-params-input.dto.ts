@@ -1,4 +1,4 @@
-import { IsString, IsUUID, Length } from 'class-validator';
+import { IsUUID } from 'class-validator';
 
 export class GetLoanMovementsParamsInput {
   @IsUUID()

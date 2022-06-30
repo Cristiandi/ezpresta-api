@@ -1,13 +1,11 @@
-import * as dotenv from 'dotenv';
-
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Nack, RabbitRPC } from '@golevelup/nestjs-rabbitmq';
+import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 import { ConfigType } from '@nestjs/config';
 import * as twilio from 'twilio';
 
 import appConfig from '../../config/app.config';
 
-import { formatCurrency } from '../../utils';
+import { formatCurrency, getRabbitMQExchangeName } from '../../utils';
 
 import { UserService } from '../user/user.service';
 import { LoanService } from '../loan/loan.service';
@@ -15,9 +13,7 @@ import { MovementService } from '../movement/movement.service';
 
 import { NotifyOverdueLoanInputDto } from './dto/notify-over-due-loan-input.dto';
 
-dotenv.config();
-
-const RABBITMQ_EXCHANGE = process.env.RABBITMQ_EXCHANGE;
+const RABBITMQ_EXCHANGE = getRabbitMQExchangeName();
 
 @Injectable()
 export class NotificationService {
@@ -41,7 +37,7 @@ export class NotificationService {
     routingKey: `${RABBITMQ_EXCHANGE}.overdue_loan`,
     queue: `${RABBITMQ_EXCHANGE}.overdue_loan`,
   })
-  async notifyOverdueLoan(input: NotifyOverdueLoanInputDto): Promise<Nack> {
+  async notifyOverdueLoan(input: NotifyOverdueLoanInputDto): Promise<void> {
     const { loanUid } = input;
 
     // get the user from the loan
@@ -83,8 +79,5 @@ export class NotificationService {
     });
 
     Logger.log(`twilio message sent: ${sid}`, NotificationService.name);
-
-    // return ack to the queue
-    return new Nack(false);
   }
 }

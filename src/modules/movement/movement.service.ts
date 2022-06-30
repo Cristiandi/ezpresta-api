@@ -8,17 +8,23 @@ import {
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 
 import appConfig from '../../config/app.config';
 
 import { Movement } from './movement.entity';
 
 import { BaseService } from '../../common/base.service';
+import { RabbitLocalModuleService } from '../../plugins/rabbit-local-module/rabbit-local-module.service';
 import { LoanService } from '../loan/loan.service';
 import { MovementTypeService } from '../movement-type/movement-type.service';
 
-import { addDays, getNumberOfDays, addMinutes } from '../../utils';
+import {
+  addDays,
+  getNumberOfDays,
+  addMinutes,
+  getRabbitMQExchangeName,
+} from '../../utils';
 
 import { GetLoanAmountToSettleInterestInput } from './dto/get-loan-amount-to-settle-interest-input.dto';
 import { SettleLoanInterestsInput } from './dto/settle-loan-interests-input.dto';
@@ -35,6 +41,8 @@ import { GetLoanPaymentsQueryInput } from './dto/get-loan-payments-query-input.d
 import { GetLoanMovementsParamsInput } from './dto/get-loan-movements-params-input.dto';
 import { GetLoanMovementsQueryInput } from './dto/get-loan-movements-query-input.dto';
 
+const RABBITMQ_EXCHANGE = getRabbitMQExchangeName();
+
 @Injectable()
 export class MovementService extends BaseService<Movement> {
   constructor(
@@ -42,7 +50,7 @@ export class MovementService extends BaseService<Movement> {
     private readonly appConfiguration: ConfigType<typeof appConfig>,
     @InjectRepository(Movement)
     private readonly movementRepository: Repository<Movement>,
-    private readonly amqpConnection: AmqpConnection,
+    private readonly rabbitLocalModuleService: RabbitLocalModuleService,
     @Inject(forwardRef(() => LoanService))
     private readonly loanService: LoanService,
     private readonly movementTypeService: MovementTypeService,
@@ -236,10 +244,17 @@ export class MovementService extends BaseService<Movement> {
     return amount;
   }
 
+  @RabbitRPC({
+    exchange: RABBITMQ_EXCHANGE,
+    routingKey: `${RABBITMQ_EXCHANGE}.settle_loan_interests`,
+    queue: `${RABBITMQ_EXCHANGE}.settle_loan_interests`,
+  })
   public async settleLoanInterests(
     input: SettleLoanInterestsInput,
   ): Promise<void> {
     const { loanUid } = input;
+
+    Logger.log(`settling loan interests for ${loanUid}`);
 
     const loanMovement = await this.getLoanMovement({ loanUid });
 
@@ -369,26 +384,11 @@ export class MovementService extends BaseService<Movement> {
         if (
           iterationDate.getFullYear() === currentDate.getFullYear() &&
           iterationDate.getMonth() === currentDate.getMonth() &&
-          iterationDate.getDate() === currentDate.getDate()
+          iterationDate.getDate() === currentDate.getDate() - 1 // TODO: DELETE THIS - 1
         ) {
-          const {
-            rabbitmq: { exchange },
-          } = this.appConfiguration;
-
-          await this.amqpConnection.publish(
-            exchange,
-            `${exchange}.overdue_loan`,
-            {
-              loanUid,
-            },
-          );
-
-          Logger.log(
-            `message published to exchange ${exchange} with input: ${JSON.stringify(
-              input,
-            )}`,
-            MovementService.name,
-          );
+          await this.rabbitLocalModuleService.publishOverdueLoan({
+            loanUid: loan.uid,
+          });
         }
       }
     }

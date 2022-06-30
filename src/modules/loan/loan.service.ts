@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +10,7 @@ import { Loan } from './loan.entity';
 import { BaseService } from '../../common/base.service';
 import { UserService } from '../user/user.service';
 import { MovementService } from '../movement/movement.service';
+import { RabbitLocalModuleService } from '../../plugins/rabbit-local-module/rabbit-local-module.service';
 
 import { addMinutes } from '../../utils';
 
@@ -26,6 +27,7 @@ export class LoanService extends BaseService<Loan> {
     private readonly appConfiguration: ConfigType<typeof appConfig>,
     @InjectRepository(Loan)
     private readonly loanRepository: Repository<Loan>,
+    private readonly rabbitLocalModuleService: RabbitLocalModuleService,
     private readonly userService: UserService,
     @Inject(forwardRef(() => MovementService))
     private readonly movementService: MovementService,
@@ -89,12 +91,7 @@ export class LoanService extends BaseService<Loan> {
 
     (async () => {
       for (const loan of loans) {
-        Logger.log(
-          `settling interest for loan ${loan.uid}...`,
-          LoanService.name,
-        );
-
-        await this.movementService.settleLoanInterests({
+        await this.rabbitLocalModuleService.publishSettleLoanInterests({
           loanUid: loan.uid,
         });
       }
@@ -158,7 +155,7 @@ export class LoanService extends BaseService<Loan> {
   }
 
   // function to get the loan details
-  public async getLoanDetails(input: GetLoanDetailsInput): Promise<any> {
+  public async getLoanDetails(input: GetLoanDetailsInput) {
     const { loanUid } = input;
 
     // get the loan

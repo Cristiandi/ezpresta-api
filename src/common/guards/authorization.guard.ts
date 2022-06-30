@@ -10,6 +10,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ConfigType } from '@nestjs/config';
 import { BasicAclService } from 'nestjs-basic-acl-sdk';
+import { isRabbitContext } from '@golevelup/nestjs-rabbitmq';
 
 import appConfig from '../../config/app.config';
 
@@ -26,6 +27,9 @@ export class AuthorizationGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const shouldSkip = isRabbitContext(context);
+    if (shouldSkip) return true;
+
     // check if the request is public
     const isPublic = this.reflector.get<string>(
       IS_PUBLIC_KEY,
