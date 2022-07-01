@@ -4,10 +4,14 @@ import {
   CreateDateColumn,
   Entity,
   Generated,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+
+import { User } from '../user/user.entity';
 
 export enum LoanRequestStatus {
   CREADA = 'CREADA',
@@ -18,7 +22,7 @@ export enum LoanRequestStatus {
 
 @Entity({ name: 'loan_request' })
 @Unique('uk_loan_request_uid', ['uid'])
-export class Loan extends BaseEntity {
+export class LoanRequest extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -54,4 +58,7 @@ export class Loan extends BaseEntity {
   updatedAt: Date;
 
   // relations
+  @ManyToOne(() => User, (user) => user.loanRequests, { nullable: false })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 }

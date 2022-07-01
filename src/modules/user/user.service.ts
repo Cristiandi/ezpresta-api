@@ -135,12 +135,6 @@ export class UserService extends BaseService<User> {
       loadRelationIds: false,
     });
 
-    if (!existingUser) {
-      throw new NotFoundException(
-        `user with the authUid ${input.authUid} not found.`,
-      );
-    }
-
     return existingUser;
   }
 

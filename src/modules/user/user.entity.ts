@@ -8,7 +8,9 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+
 import { Loan } from '../loan/loan.entity';
+import { LoanRequest } from '../loan-request/loan-request.entity';
 
 @Entity({ name: 'user' })
 @Unique('uk_user_auth_uid', ['authUid'])
@@ -49,4 +51,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Loan, (loan) => loan.user)
   loans: Loan[];
+
+  @OneToMany(() => Loan, (loan) => loan.user)
+  loanRequests: LoanRequest[];
 }
