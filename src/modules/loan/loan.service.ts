@@ -118,7 +118,9 @@ export class LoanService extends BaseService<Loan> {
     // get the loans
     const loans = await this.loanRepository.find({
       where: {
-        user,
+        user: {
+          id: user.id,
+        },
       },
       take: limit ? parseInt(limit, 10) : undefined,
     });

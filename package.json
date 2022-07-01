@@ -6,6 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "postinstall": "husky install",
     "prebuild": "rimraf dist",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -19,8 +20,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --config ./src/config/orm.config.ts",
-    "migration:create": "npm run typeorm migration:generate -- -n",
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --dataSource ./src/config/orm.config.ts",
+    "migration:create": "npm run typeorm migration:generate -- ",
     "migration:run": "npm run typeorm migration:run",
     "migration:revert": "npm run typeorm migration:revert",
     "schema:drop": "npm run typeorm schema:drop",
@@ -29,11 +30,11 @@
   },
   "dependencies": {
     "@golevelup/nestjs-rabbitmq": "2.4.0",
-    "@nestjs/common": "8.4.5",
-    "@nestjs/config": "2.0.0",
-    "@nestjs/core": "8.4.5",
-    "@nestjs/platform-express": "8.4.5",
-    "@nestjs/typeorm": "8.0.3",
+    "@nestjs/common": "8.4.7",
+    "@nestjs/config": "2.1.0",
+    "@nestjs/core": "8.4.7",
+    "@nestjs/platform-express": "8.4.7",
+    "@nestjs/typeorm": "8.1.4",
     "class-transformer": "0.5.1",
     "class-validator": "0.13.2",
     "joi": "17.6.0",
@@ -43,30 +44,34 @@
     "rimraf": "3.0.2",
     "rxjs": "7.5.5",
     "twilio": "3.77.3",
-    "typeorm": "0.2.45"
+    "typeorm": "0.3.6"
   },
   "devDependencies": {
-    "@nestjs/cli": "8.2.5",
+    "@commitlint/cli": "17.0.3",
+    "@commitlint/config-conventional": "17.0.3",
+    "@nestjs/cli": "8.2.8",
     "@nestjs/schematics": "8.0.11",
-    "@nestjs/testing": "8.4.5",
+    "@nestjs/testing": "8.4.7",
     "@types/express": "4.17.13",
-    "@types/jest": "27.5.0",
-    "@types/node": "16.6.2",
-    "@types/supertest": "^2.0.11",
-    "@typescript-eslint/eslint-plugin": "^5.0.0",
-    "@typescript-eslint/parser": "^5.0.0",
-    "eslint": "8.15.0",
+    "@types/jest": "27.5.2",
+    "@types/node": "16.11.41",
+    "@types/supertest": "2.0.12",
+    "@typescript-eslint/eslint-plugin": "5.30.0",
+    "@typescript-eslint/parser": "5.30.0",
+    "eslint": "8.18.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-prettier": "4.0.0",
+    "husky": "^8.0.1",
     "jest": "28.0.3",
-    "prettier": "2.6.2",
+    "lint-staged": "13.0.3",
+    "prettier": "2.7.1",
     "source-map-support": "0.5.21",
     "supertest": "6.2.3",
     "ts-jest": "28.0.2",
-    "ts-loader": "9.3.0",
-    "ts-node": "10.7.0",
+    "ts-loader": "9.3.1",
+    "ts-node": "10.8.1",
     "tsconfig-paths": "4.0.0",
-    "typescript": "4.6.4"
+    "typescript": "4.7.4"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -84,5 +89,18 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "npm run lint"
+    ],
+    "*.ts": [
+      "npm run lint"
+    ]
   }
 }
