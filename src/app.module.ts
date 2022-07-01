@@ -15,6 +15,7 @@ import { LoanModule } from './modules/loan/loan.module';
 import { MovementTypeModule } from './modules/movement-type/movement-type.module';
 import { MovementModule } from './modules/movement/movement.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { LoanRequestModule } from './modules/loan-request/loan-request.module';
 
 @Module({
   imports: [
@@ -49,6 +50,8 @@ import { NotificationModule } from './modules/notification/notification.module';
     MovementModule,
 
     NotificationModule,
+
+    LoanRequestModule,
   ],
   controllers: [AppController],
   providers: [AppService],
