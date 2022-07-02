@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -51,7 +51,7 @@ export class LoanRequestService extends BaseService<LoanRequest> {
     });
 
     if (existingLoanRequest) {
-      throw new Error(
+      throw new ConflictException(
         `the user ${userAuthUid} already has a loan request in CREADA state`,
       );
     }
