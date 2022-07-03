@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -72,6 +73,8 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
   }
 
   public async initConfirmation(input: any) {
+    Logger.log('initConfirmation', EpaycoTransactionService.name);
+
     if (!input.x_extra1) {
       throw new BadRequestException('x_extra1 is required');
     }
