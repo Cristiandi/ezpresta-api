@@ -1,4 +1,5 @@
 import * as dotenv from 'dotenv';
+import * as crypto from 'crypto';
 
 dotenv.config();
 
@@ -55,4 +56,10 @@ export const formatCurrency = (value: number) => {
 
 export const getRabbitMQExchangeName = () => {
   return `${process.env.NODE_ENV}_${process.env.RABBITMQ_EXCHANGE}`;
+};
+
+export const hash = (text: string): string => {
+  const hash = crypto.createHash('sha256').update(text).digest('hex');
+
+  return hash;
 };

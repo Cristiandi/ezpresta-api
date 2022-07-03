@@ -23,4 +23,16 @@ export default Joi.object({
   RABBITMQ_URL: Joi.required(),
   RABBITMQ_EXCHANGE: Joi.required(),
   RABBITMQ_WAIT_FOR_CONNECTION: Joi.required(),
+
+  // TWILIO
+  TWILIO_ACCOUNT_SID: Joi.required(),
+  TWILIO_AUTH_TOKEN: Joi.required(),
+  TWILIO_MESSAGING_SERVICE_SID: Joi.required(),
+
+  // EPAYCO
+  EPAYCO_P_CUST_ID: Joi.required(),
+  EPAYCO_P_KEY: Joi.required(),
+  EPAYCO_PUBLIC_KEY: Joi.required(),
+  EPAYCO_PRIVATE_KEY: Joi.required(),
+  EPAYCO_TESTING: Joi.required(),
 });

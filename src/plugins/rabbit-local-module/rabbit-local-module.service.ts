@@ -60,4 +60,20 @@ export class RabbitLocalModuleService {
       RabbitLocalModuleService.name,
     );
   }
+
+  public async publishPaymentConfirmation(input: any): Promise<void> {
+    const { exchangeName } = this;
+
+    const routingKey = `${exchangeName}.payment_confirmation`;
+
+    await this.amqpConnection.publish(exchangeName, routingKey, {
+      ...input,
+    });
+
+    Logger.log(
+      `message published to exchange ${exchangeName} ` +
+        `for routing key ${routingKey} with input: ${JSON.stringify(input)}`,
+      RabbitLocalModuleService.name,
+    );
+  }
 }

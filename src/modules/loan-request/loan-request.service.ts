@@ -16,6 +16,8 @@ import { GetUserLoanRequestsQueryInput } from './dto/get-user-loan-requests-quer
 import { GetOneLoanRequestInput } from './dto/get-one-loan-request-input.dto';
 import { UpdateUserLoanRequestInput } from './dto/update-user-loan-request-input.dto';
 
+const MINIMUM_LOAN_REQUEST_AMOUNT = 100000; // TODO: use a parameter instead
+
 @Injectable()
 export class LoanRequestService extends BaseService<LoanRequest> {
   constructor(
@@ -58,6 +60,13 @@ export class LoanRequestService extends BaseService<LoanRequest> {
 
     // create the loan request
     const { amount, description } = input;
+
+    // check the input amount
+    if (amount < MINIMUM_LOAN_REQUEST_AMOUNT) {
+      throw new ConflictException(
+        `the amount must be at least ${MINIMUM_LOAN_REQUEST_AMOUNT}`,
+      );
+    }
 
     const createdLoanRequest = this.loanRequestRepository.create({
       user: existingUser,
@@ -133,6 +142,13 @@ export class LoanRequestService extends BaseService<LoanRequest> {
     });
 
     const { amount, description } = input;
+
+    // check the input amount
+    if (amount && amount < MINIMUM_LOAN_REQUEST_AMOUNT) {
+      throw new ConflictException(
+        `the amount must be at least ${MINIMUM_LOAN_REQUEST_AMOUNT}`,
+      );
+    }
 
     const preloadedLoanRequest = await this.loanRequestRepository.preload({
       id: existingLoanRequest.id,

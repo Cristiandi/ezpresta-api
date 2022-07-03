@@ -32,5 +32,12 @@ export default registerAs('config', () => {
       authToken: process.env.TWILIO_AUTH_TOKEN,
       messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
     },
+    epayco: {
+      pCustId: process.env.EPAYCO_P_CUST_ID,
+      pKey: process.env.EPAYCO_P_KEY,
+      publicKey: process.env.EPAYCO_PUBLIC_KEY,
+      privateKey: process.env.EPAYCO_PRIVATE_KEY,
+      testing: process.env.EPAYCO_TESTING === '1',
+    },
   };
 });

@@ -14,6 +14,7 @@ import {
 
 import { User } from '../user/user.entity';
 import { Movement } from '../movement/movement.entity';
+import { EpaycoTransaction } from '../epayco-transaction/epayco-transaction.entity';
 
 @Entity({ name: 'loan' })
 @Unique('uk_loan_uid', ['uid'])
@@ -107,4 +108,10 @@ export class Loan extends BaseEntity {
 
   @OneToMany(() => Movement, (movement) => movement.loan)
   movements: Movement[];
+
+  @OneToMany(
+    () => EpaycoTransaction,
+    (epaycoTransaction) => epaycoTransaction.loan,
+  )
+  epaycoTransactions: EpaycoTransaction[];
 }
