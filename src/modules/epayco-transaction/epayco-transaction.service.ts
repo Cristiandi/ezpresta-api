@@ -73,11 +73,6 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
   }
 
   public async initConfirmation(input: any) {
-    Logger.log(
-      `initConfirmation ${JSON.stringify(input)}`,
-      EpaycoTransactionService.name,
-    );
-
     if (!input.x_ref_payco) {
       throw new BadRequestException('x_ref_payco is required');
     }
