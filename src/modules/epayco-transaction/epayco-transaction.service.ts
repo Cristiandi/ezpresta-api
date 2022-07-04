@@ -73,7 +73,7 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
   }
 
   public async initConfirmation(input: any) {
-    Logger.log('initConfirmation', EpaycoTransactionService.name);
+    Logger.log(`initConfirmation ${input}`, EpaycoTransactionService.name);
 
     if (!input.x_extra1) {
       throw new BadRequestException('x_extra1 is required');
