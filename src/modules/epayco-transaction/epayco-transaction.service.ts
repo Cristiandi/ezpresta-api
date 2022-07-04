@@ -78,10 +78,6 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
       EpaycoTransactionService.name,
     );
 
-    if (!input.x_extra1) {
-      throw new BadRequestException('x_extra1 is required');
-    }
-
     if (!input.x_ref_payco) {
       throw new BadRequestException('x_ref_payco is required');
     }
@@ -115,9 +111,11 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     queue: `${RABBITMQ_EXCHANGE}.payment_confirmation`,
   })
   public async confirmation(input: any) {
-    const { x_extra1: epaycoTransactionUid } = input;
+    const { x_id_invoice: epaycoTransactionUid } = input;
 
     // look for the epayco transaction
+    // as we use x_id_invoice as the epaycoTransactionUid
+    // we're also checking if x_id_invoice is righty
     const existingEpaycoTransaction = await this.getOneByFields({
       fields: {
         uid: epaycoTransactionUid,
@@ -145,18 +143,6 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
       { id: existingEpaycoTransaction.id },
       { reference, used: true },
     );
-
-    // check the invoice id
-    const { x_id_invoice: invoiceId } = input;
-
-    if (invoiceId !== existingEpaycoTransaction.uid + '') {
-      await this.epaycoTransactionRepository.update(
-        { id: existingEpaycoTransaction.id },
-        { status: -1, comment: 'invoice number mismatch' },
-      );
-
-      throw new ConflictException('invoice number mismatch');
-    }
 
     // check the amount
     const { x_amount: amount } = input;
