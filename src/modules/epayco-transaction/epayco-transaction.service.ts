@@ -188,7 +188,7 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
       { status: parseInt(status, 10) },
     );
 
-    if (status === '1') {
+    if (!existingEpaycoTransaction.testing && status === '1') {
       // create the payment
     }
   }
