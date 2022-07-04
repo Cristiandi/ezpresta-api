@@ -1,7 +1,10 @@
 import {
+  All,
   Body,
   Controller,
   Post,
+  Query,
+  Redirect,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -26,5 +29,12 @@ export class EpaycoTransactionController {
   @Post('/confirmation')
   confirmation(@Body() input: any) {
     return this.service.initConfirmation(input);
+  }
+
+  @Public()
+  @All('/response')
+  @Redirect(process.env.SELF_WEB_URL, 302)
+  handleResponsePage(@Query() queryInput: any) {
+    return this.service.handleResponsePage(queryInput);
   }
 }

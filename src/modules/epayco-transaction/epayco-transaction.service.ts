@@ -192,4 +192,17 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
       // create the payment
     }
   }
+
+  public handleResponsePage(queryInput: any) {
+    const { ref_payco } = queryInput;
+
+    const {
+      app: { selftWebUrl },
+    } = this.appConfiguration;
+
+    return {
+      url: `${selftWebUrl}loans/epayco/response?ref_payco=${ref_payco}`,
+      statusCode: 302,
+    };
+  }
 }
