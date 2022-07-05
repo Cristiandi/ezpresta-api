@@ -15,7 +15,7 @@ import appConfig from '../../config/app.config';
 import { EpaycoTransaction } from './epayco-transaction.entity';
 
 import { BaseService } from '../../common/base.service';
-import { RabbitLocalModuleService } from 'src/plugins/rabbit-local-module/rabbit-local-module.service';
+import { RabbitLocalModuleService } from '../../plugins/rabbit-local-module/rabbit-local-module.service';
 import { LoanService } from '../loan/loan.service';
 
 import { hash, getRabbitMQExchangeName } from '../../utils';

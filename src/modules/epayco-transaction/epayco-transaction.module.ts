@@ -11,7 +11,7 @@ import { EpaycoTransactionService } from './epayco-transaction.service';
 import { EpaycoTransactionController } from './epayco-transaction.controller';
 
 import { LoanModule } from '../loan/loan.module';
-import { RabbitLocalModuleModule } from 'src/plugins/rabbit-local-module/rabbit-local-module.module';
+import { RabbitLocalModuleModule } from '../../plugins/rabbit-local-module/rabbit-local-module.module';
 
 @Module({
   imports: [
