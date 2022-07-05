@@ -119,6 +119,7 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
       fields: {
         uid: epaycoTransactionUid,
       },
+      relations: ['loan'],
       loadRelationIds: false,
     });
 
