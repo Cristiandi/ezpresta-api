@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -107,6 +108,8 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     queue: `${RABBITMQ_EXCHANGE}.payment_confirmation`,
   })
   public async confirmation(input: any) {
+    Logger.log('confirmation', EpaycoTransactionService.name);
+
     const { x_id_invoice: epaycoTransactionUid } = input;
 
     // look for the epayco transaction
@@ -120,6 +123,10 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     });
 
     if (!existingEpaycoTransaction) {
+      Logger.warn(
+        `EpaycoTransaction not found: ${epaycoTransactionUid}`,
+        EpaycoTransactionService.name,
+      );
       throw new NotFoundException(
         `epayco transaction with uid ${epaycoTransactionUid} not found`,
       );
@@ -127,6 +134,10 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
 
     // check if the transaction is already used
     if (existingEpaycoTransaction.used) {
+      Logger.warn(
+        `epayco transaction with uid ${epaycoTransactionUid} already used`,
+        EpaycoTransactionService.name,
+      );
       throw new ConflictException(
         `epayco transaction with uid ${epaycoTransactionUid} already used`,
       );
