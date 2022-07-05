@@ -207,11 +207,16 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
       };
 
       // create the payment
-      await this.movementService.createPaymentMovement({
-        loanUid: existingEpaycoTransaction.loan.uid,
-        amount: existingEpaycoTransaction.amount,
-        paymentDate: formatDateForPayment(new Date()),
-      });
+      try {
+        await this.movementService.createPaymentMovement({
+          loanUid: existingEpaycoTransaction.loan.uid,
+          amount: existingEpaycoTransaction.amount,
+          paymentDate: formatDateForPayment(new Date()),
+        });
+      } catch (error) {
+        Logger.error(error, EpaycoTransactionService.name);
+        throw error;
+      }
     }
   }
 
