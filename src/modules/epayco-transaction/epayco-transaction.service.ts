@@ -17,6 +17,7 @@ import { EpaycoTransaction } from './epayco-transaction.entity';
 import { BaseService } from '../../common/base.service';
 import { RabbitLocalModuleService } from '../../plugins/rabbit-local-module/rabbit-local-module.service';
 import { LoanService } from '../loan/loan.service';
+import { MovementService } from '../movement/movement.service';
 
 import { hash, getRabbitMQExchangeName } from '../../utils';
 
@@ -33,6 +34,7 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     private readonly epaycoTransactionRepository: Repository<EpaycoTransaction>,
     private readonly rabbitLocalModuleService: RabbitLocalModuleService,
     private readonly loanService: LoanService,
+    private readonly movementService: MovementService,
   ) {
     super(epaycoTransactionRepository);
   }
@@ -189,7 +191,16 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     );
 
     if (!existingEpaycoTransaction.testing && status === '1') {
+      const formatDateForPayment = (date) => {
+        return new Date(date).toISOString().slice(0, 10);
+      };
+
       // create the payment
+      await this.movementService.createPaymentMovement({
+        loanUid: existingEpaycoTransaction.loan.uid,
+        amount: existingEpaycoTransaction.amount,
+        paymentDate: formatDateForPayment(new Date()),
+      });
     }
   }
 

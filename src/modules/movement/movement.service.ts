@@ -145,6 +145,8 @@ export class MovementService extends BaseService<Movement> {
 
     const saved = await this.movementRepository.save(created);
 
+    // TODO: publish payment event notification to rabbitmq
+
     return saved;
   }
 

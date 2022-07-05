@@ -12,6 +12,7 @@ import { EpaycoTransactionController } from './epayco-transaction.controller';
 
 import { LoanModule } from '../loan/loan.module';
 import { RabbitLocalModuleModule } from '../../plugins/rabbit-local-module/rabbit-local-module.module';
+import { MovementModule } from '../movement/movement.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { RabbitLocalModuleModule } from '../../plugins/rabbit-local-module/rabbi
     TypeOrmModule.forFeature([EpaycoTransaction]),
     RabbitLocalModuleModule,
     LoanModule,
+    MovementModule,
   ],
   providers: [EpaycoTransactionService],
   controllers: [EpaycoTransactionController],
