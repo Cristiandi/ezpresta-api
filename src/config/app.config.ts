@@ -39,5 +39,11 @@ export default registerAs('config', () => {
       privateKey: process.env.EPAYCO_PRIVATE_KEY,
       testing: process.env.EPAYCO_TESTING === '1',
     },
+    mailgun: {
+      domain: process.env.MAILGUN_DOMAIN,
+      from: process.env.MAILGUN_FROM,
+      privateKey: process.env.MAILGUN_PRIVATE_KEY,
+      publicKey: process.env.MAILGUN_PUBLIC_KEY,
+    },
   };
 });

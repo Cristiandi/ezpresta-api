@@ -17,6 +17,7 @@ import { MovementModule } from './modules/movement/movement.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { LoanRequestModule } from './modules/loan-request/loan-request.module';
 import { EpaycoTransactionModule } from './modules/epayco-transaction/epayco-transaction.module';
+import { MailingModule } from './plugins/mailing/mailing.module';
 
 @Module({
   imports: [
@@ -55,6 +56,8 @@ import { EpaycoTransactionModule } from './modules/epayco-transaction/epayco-tra
     LoanRequestModule,
 
     EpaycoTransactionModule,
+
+    MailingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

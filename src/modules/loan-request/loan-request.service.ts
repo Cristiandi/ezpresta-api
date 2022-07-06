@@ -9,14 +9,20 @@ import { LoanRequest, LoanRequestStatus } from './loan-request.entity';
 
 import { BaseService } from '../../common/base.service';
 import { UserService } from '../user/user.service';
+import { RabbitLocalModuleService } from '../../plugins/rabbit-local-module/rabbit-local-module.service';
+import { MailingService } from '../../plugins/mailing/mailing.service';
+
+import { formatCurrency, getRabbitMQExchangeName } from '../../utils';
 
 import { CreateLoanRequestInput } from './dto/create-loan-request-input.dto';
 import { GetUserLoanRequestsParamsInput } from './dto/get-user-loan-requests-params-input.dto';
 import { GetUserLoanRequestsQueryInput } from './dto/get-user-loan-requests-query-input.dto';
 import { GetOneLoanRequestInput } from './dto/get-one-loan-request-input.dto';
 import { UpdateUserLoanRequestInput } from './dto/update-user-loan-request-input.dto';
+import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 
 const MINIMUM_LOAN_REQUEST_AMOUNT = 100000; // TODO: use a parameter instead
+const RABBITMQ_EXCHANGE = getRabbitMQExchangeName();
 
 @Injectable()
 export class LoanRequestService extends BaseService<LoanRequest> {
@@ -25,6 +31,8 @@ export class LoanRequestService extends BaseService<LoanRequest> {
     private readonly appConfiguration: ConfigType<typeof appConfig>,
     @InjectRepository(LoanRequest)
     private readonly loanRequestRepository: Repository<LoanRequest>,
+    private readonly rabbitLocalModuleService: RabbitLocalModuleService,
+    private readonly mailingService: MailingService,
     private readonly userService: UserService,
   ) {
     super(loanRequestRepository);
@@ -77,6 +85,11 @@ export class LoanRequestService extends BaseService<LoanRequest> {
     const savedLoanRequest = await this.loanRequestRepository.save(
       createdLoanRequest,
     );
+
+    // publish a event to notify the admin
+    await this.rabbitLocalModuleService.publishLoanRequestCreated({
+      loanRequestUid: savedLoanRequest.uid,
+    });
 
     return savedLoanRequest;
   }
@@ -179,5 +192,54 @@ export class LoanRequestService extends BaseService<LoanRequest> {
     );
 
     return deletedLoanRequest;
+  }
+
+  @RabbitRPC({
+    exchange: RABBITMQ_EXCHANGE,
+    routingKey: `${RABBITMQ_EXCHANGE}.loan_request_created`,
+    queue: `${RABBITMQ_EXCHANGE}.loan_request_created`,
+  })
+  public async loanRequestCreated(input: any) {
+    const { loanRequestUid } = input;
+    const {
+      app: { selftWebUrl },
+    } = this.appConfiguration;
+
+    const existingLoanRequest = await this.getOneByFields({
+      fields: {
+        uid: loanRequestUid,
+      },
+      checkIfExists: true,
+      loadRelationIds: false,
+      relations: ['user'],
+    });
+
+    const { user } = existingLoanRequest;
+
+    const { fullName, email } = user;
+
+    // send a mail to the admin and to the borrower
+    await Promise.all([
+      this.mailingService.sendEmail({
+        templateName: 'ADMINISTRATOR_LOAN_REQUEST_CREATED',
+        subject: `${fullName} ha solicitado un préstamo`,
+        to: 'cristiandavidippolito@gmail.com',
+        parameters: {
+          borrowerName: fullName,
+          loanRequestAmount: formatCurrency(existingLoanRequest.amount),
+          link: selftWebUrl,
+        },
+      }),
+      this.mailingService.sendEmail({
+        templateName: 'BORROWER_LOAN_REQUEST_CREATED',
+        subject: 'Solicitaste un préstamo',
+        to: email,
+        parameters: {
+          borrowerName: fullName.split(' ')[0],
+          loanRequestAmount: formatCurrency(existingLoanRequest.amount),
+          link: selftWebUrl + 'loan-requests',
+        },
+      }),
+    ]);
   }
 }

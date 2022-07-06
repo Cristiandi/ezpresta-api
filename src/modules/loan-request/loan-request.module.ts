@@ -9,12 +9,16 @@ import { LoanRequest } from './loan-request.entity';
 import { LoanRequestService } from './loan-request.service';
 import { LoanRequestController } from './loan-request.controller';
 
+import { RabbitLocalModuleModule } from '../../plugins/rabbit-local-module/rabbit-local-module.module';
 import { UserModule } from '../user/user.module';
+import { MailingModule } from '../../plugins/mailing/mailing.module';
 
 @Module({
   imports: [
     ConfigModule.forFeature(appConfig),
     TypeOrmModule.forFeature([LoanRequest]),
+    RabbitLocalModuleModule,
+    MailingModule,
     UserModule,
   ],
   providers: [LoanRequestService],
