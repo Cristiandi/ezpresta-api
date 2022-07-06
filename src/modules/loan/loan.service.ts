@@ -123,6 +123,9 @@ export class LoanService extends BaseService<Loan> {
         },
       },
       take: limit ? parseInt(limit, 10) : undefined,
+      order: {
+        startDate: 'DESC',
+      },
     });
 
     const userLoans = await Promise.all(
