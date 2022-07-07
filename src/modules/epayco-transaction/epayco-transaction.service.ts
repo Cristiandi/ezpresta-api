@@ -115,156 +115,156 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
       data: input,
     });
 
-    const { x_id_invoice: epaycoTransactionUid } = input;
+    try {
+      const { x_id_invoice: epaycoTransactionUid } = input;
 
-    // look for the epayco transaction
-    // as we use x_id_invoice as the epaycoTransactionUid
-    // we're also checking if x_id_invoice is righty
-    const existingEpaycoTransaction = await this.getOneByFields({
-      fields: {
-        uid: epaycoTransactionUid,
-      },
-      relations: ['loan'],
-      loadRelationIds: false,
-    });
-
-    if (!existingEpaycoTransaction) {
-      const message = `epayco transaction with uid ${epaycoTransactionUid} not found`;
-
-      await this.eventMessageService.setError({
-        id: eventMessage._id,
-        error: new NotFoundException(message),
+      // look for the epayco transaction
+      // as we use x_id_invoice as the epaycoTransactionUid
+      // we're also checking if x_id_invoice is righty
+      const existingEpaycoTransaction = await this.getOneByFields({
+        fields: {
+          uid: epaycoTransactionUid,
+        },
+        relations: ['loan'],
+        loadRelationIds: false,
       });
 
-      return {
-        status: 404,
-        message,
-        data: {},
-      };
-    }
+      if (!existingEpaycoTransaction) {
+        const message = `epayco transaction with uid ${epaycoTransactionUid} not found`;
 
-    // check if the transaction is already used
-    if (existingEpaycoTransaction.used) {
-      const message = `epayco transaction with uid ${epaycoTransactionUid} already used`;
+        await this.eventMessageService.setError({
+          id: eventMessage._id,
+          error: new NotFoundException(message),
+        });
 
-      await this.eventMessageService.setError({
-        id: eventMessage._id,
-        error: new ConflictException(message),
-      });
+        return {
+          status: 404,
+          message,
+          data: {},
+        };
+      }
 
-      return {
-        status: 409,
-        message,
-        data: {},
-      };
-    }
+      // check if the transaction is already used
+      if (existingEpaycoTransaction.used) {
+        const message = `epayco transaction with uid ${epaycoTransactionUid} already used`;
 
-    // update the epayco transaction with th reference
-    const { x_ref_payco: reference } = input;
+        await this.eventMessageService.setError({
+          id: eventMessage._id,
+          error: new ConflictException(message),
+        });
 
-    await this.epaycoTransactionRepository.update(
-      { id: existingEpaycoTransaction.id },
-      { reference, used: true },
-    );
+        return {
+          status: 409,
+          message,
+          data: {},
+        };
+      }
 
-    // check the amount
-    const { x_amount: amount } = input;
-    if (parseFloat(amount) !== existingEpaycoTransaction.amount) {
-      const message = `epayco transaction with uid ${epaycoTransactionUid} amount mismatch`;
+      // update the epayco transaction with th reference
+      const { x_ref_payco: reference } = input;
 
       await this.epaycoTransactionRepository.update(
         { id: existingEpaycoTransaction.id },
-        { status: -1, comment: message },
+        { reference, used: true },
       );
 
-      await this.eventMessageService.setError({
-        id: eventMessage._id,
-        error: new ConflictException(message),
-      });
+      // check the amount
+      const { x_amount: amount } = input;
+      if (parseFloat(amount) !== existingEpaycoTransaction.amount) {
+        const message = `epayco transaction with uid ${epaycoTransactionUid} amount mismatch`;
 
-      return {
-        status: 409,
-        message,
-        data: {},
-      };
-    }
+        await this.epaycoTransactionRepository.update(
+          { id: existingEpaycoTransaction.id },
+          { status: -1, comment: message },
+        );
 
-    // check the signature
-    const {
-      epayco: { pCustId, pKey },
-    } = this.appConfiguration;
+        await this.eventMessageService.setError({
+          id: eventMessage._id,
+          error: new ConflictException(message),
+        });
 
-    const { x_transaction_id: transactionId, x_currency_code: currencyCode } =
-      input;
+        return {
+          status: 409,
+          message,
+          data: {},
+        };
+      }
 
-    const signature = hash(
-      pCustId +
-        '^' +
-        pKey +
-        '^' +
-        reference +
-        '^' +
-        transactionId +
-        '^' +
-        amount +
-        '^' +
-        currencyCode,
-    );
+      // check the signature
+      const {
+        epayco: { pCustId, pKey },
+      } = this.appConfiguration;
 
-    if (signature !== input.x_signature) {
-      const message = `epayco transaction with uid ${epaycoTransactionUid} signature mismatch`;
+      const { x_transaction_id: transactionId, x_currency_code: currencyCode } =
+        input;
+
+      const signature = hash(
+        pCustId +
+          '^' +
+          pKey +
+          '^' +
+          reference +
+          '^' +
+          transactionId +
+          '^' +
+          amount +
+          '^' +
+          currencyCode,
+      );
+
+      if (signature !== input.x_signature) {
+        const message = `epayco transaction with uid ${epaycoTransactionUid} signature mismatch`;
+
+        await this.epaycoTransactionRepository.update(
+          { id: existingEpaycoTransaction.id },
+          { status: -1, comment: message },
+        );
+
+        await this.eventMessageService.setError({
+          id: eventMessage._id,
+          error: new ConflictException(message),
+        });
+
+        return {
+          status: 409,
+          message,
+          data: {},
+        };
+      }
+
+      // update the transaction
+      const { x_cod_transaction_state: status } = input;
 
       await this.epaycoTransactionRepository.update(
         { id: existingEpaycoTransaction.id },
-        { status: -1, comment: message },
+        { status: parseInt(status, 10) },
       );
 
-      await this.eventMessageService.setError({
-        id: eventMessage._id,
-        error: new ConflictException(message),
-      });
+      if (!existingEpaycoTransaction.testing && status === '1') {
+        const formatDateForPayment = (date) => {
+          return new Date(date).toISOString().slice(0, 10);
+        };
 
-      return {
-        status: 409,
-        message,
-        data: {},
-      };
-    }
-
-    // update the transaction
-    const { x_cod_transaction_state: status } = input;
-
-    await this.epaycoTransactionRepository.update(
-      { id: existingEpaycoTransaction.id },
-      { status: parseInt(status, 10) },
-    );
-
-    if (!existingEpaycoTransaction.testing && status === '1') {
-      const formatDateForPayment = (date) => {
-        return new Date(date).toISOString().slice(0, 10);
-      };
-
-      // create the payment
-      try {
+        // create the payment
         await this.movementService.createPaymentMovement({
           loanUid: existingEpaycoTransaction.loan.uid,
           amount: existingEpaycoTransaction.amount,
           paymentDate: formatDateForPayment(new Date()),
         });
-      } catch (error) {
-        const message = error.message;
-
-        await this.eventMessageService.setError({
-          id: eventMessage._id,
-          error,
-        });
-
-        return {
-          status: 500,
-          message,
-          data: {},
-        };
       }
+    } catch (error) {
+      const message = error.message;
+
+      await this.eventMessageService.setError({
+        id: eventMessage._id,
+        error,
+      });
+
+      return {
+        status: 500,
+        message,
+        data: {},
+      };
     }
   }
 
