@@ -130,34 +130,16 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
       });
 
       if (!existingEpaycoTransaction) {
-        const message = `epayco transaction with uid ${epaycoTransactionUid} not found`;
-
-        await this.eventMessageService.setError({
-          id: eventMessage._id,
-          error: new NotFoundException(message),
-        });
-
-        return {
-          status: 404,
-          message,
-          data: {},
-        };
+        throw new NotFoundException(
+          `epayco transaction with uid ${epaycoTransactionUid} not found`,
+        );
       }
 
       // check if the transaction is already used
       if (existingEpaycoTransaction.used) {
-        const message = `epayco transaction with uid ${epaycoTransactionUid} already used`;
-
-        await this.eventMessageService.setError({
-          id: eventMessage._id,
-          error: new ConflictException(message),
-        });
-
-        return {
-          status: 409,
-          message,
-          data: {},
-        };
+        throw new ConflictException(
+          `epayco transaction with uid ${epaycoTransactionUid} already used`,
+        );
       }
 
       // update the epayco transaction with th reference
@@ -178,16 +160,7 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
           { status: -1, comment: message },
         );
 
-        await this.eventMessageService.setError({
-          id: eventMessage._id,
-          error: new ConflictException(message),
-        });
-
-        return {
-          status: 409,
-          message,
-          data: {},
-        };
+        throw new ConflictException(message);
       }
 
       // check the signature
@@ -220,16 +193,7 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
           { status: -1, comment: message },
         );
 
-        await this.eventMessageService.setError({
-          id: eventMessage._id,
-          error: new ConflictException(message),
-        });
-
-        return {
-          status: 409,
-          message,
-          data: {},
-        };
+        throw new ConflictException(message);
       }
 
       // update the transaction
@@ -261,7 +225,7 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
       });
 
       return {
-        status: 500,
+        status: error.status || 500,
         message,
         data: {},
       };

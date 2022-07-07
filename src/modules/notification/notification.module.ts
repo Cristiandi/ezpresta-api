@@ -8,10 +8,12 @@ import { NotificationService } from './notification.service';
 import { UserModule } from '../user/user.module';
 import { LoanModule } from '../loan/loan.module';
 import { MovementModule } from '../movement/movement.module';
+import { EventMessageModule } from '../event-message/event-message.module';
 
 @Module({
   imports: [
     ConfigModule.forFeature(appConfig),
+    EventMessageModule,
     UserModule,
     LoanModule,
     MovementModule,

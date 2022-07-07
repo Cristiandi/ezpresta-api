@@ -2,6 +2,7 @@ import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 
 import appConfig from '../../config/app.config';
 
@@ -11,6 +12,7 @@ import { BaseService } from '../../common/base.service';
 import { UserService } from '../user/user.service';
 import { RabbitLocalModuleService } from '../../plugins/rabbit-local-module/rabbit-local-module.service';
 import { MailingService } from '../../plugins/mailing/mailing.service';
+import { EventMessageService } from '../event-message/event-message.service';
 
 import { formatCurrency, getRabbitMQExchangeName } from '../../utils';
 
@@ -19,7 +21,6 @@ import { GetUserLoanRequestsParamsInput } from './dto/get-user-loan-requests-par
 import { GetUserLoanRequestsQueryInput } from './dto/get-user-loan-requests-query-input.dto';
 import { GetOneLoanRequestInput } from './dto/get-one-loan-request-input.dto';
 import { UpdateUserLoanRequestInput } from './dto/update-user-loan-request-input.dto';
-import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 
 const MINIMUM_LOAN_REQUEST_AMOUNT = 100000; // TODO: use a parameter instead
 const RABBITMQ_EXCHANGE = getRabbitMQExchangeName();
@@ -32,6 +33,7 @@ export class LoanRequestService extends BaseService<LoanRequest> {
     @InjectRepository(LoanRequest)
     private readonly loanRequestRepository: Repository<LoanRequest>,
     private readonly rabbitLocalModuleService: RabbitLocalModuleService,
+    private readonly eventMessageService: EventMessageService,
     private readonly mailingService: MailingService,
     private readonly userService: UserService,
   ) {
@@ -200,46 +202,67 @@ export class LoanRequestService extends BaseService<LoanRequest> {
     queue: `${RABBITMQ_EXCHANGE}.loan_request_created`,
   })
   public async loanRequestCreated(input: any) {
-    const { loanRequestUid } = input;
-    const {
-      app: { selftWebUrl },
-    } = this.appConfiguration;
-
-    const existingLoanRequest = await this.getOneByFields({
-      fields: {
-        uid: loanRequestUid,
-      },
-      checkIfExists: true,
-      loadRelationIds: false,
-      relations: ['user'],
+    const eventMessage = await this.eventMessageService.create({
+      routingKey: `${RABBITMQ_EXCHANGE}.loan_request_created`,
+      functionName: 'loanRequestCreated',
+      data: input,
     });
 
-    const { user } = existingLoanRequest;
+    try {
+      const { loanRequestUid } = input;
+      const {
+        app: { selftWebUrl },
+      } = this.appConfiguration;
 
-    const { fullName, email } = user;
+      const existingLoanRequest = await this.getOneByFields({
+        fields: {
+          uid: loanRequestUid,
+        },
+        checkIfExists: true,
+        loadRelationIds: false,
+        relations: ['user'],
+      });
 
-    // send a mail to the admin and to the borrower
-    await Promise.all([
-      this.mailingService.sendEmail({
-        templateName: 'ADMINISTRATOR_LOAN_REQUEST_CREATED',
-        subject: `${fullName} ha solicitado un préstamo`,
-        to: 'cristiandavidippolito@gmail.com',
-        parameters: {
-          borrowerName: fullName,
-          loanRequestAmount: formatCurrency(existingLoanRequest.amount),
-          link: selftWebUrl,
-        },
-      }),
-      this.mailingService.sendEmail({
-        templateName: 'BORROWER_LOAN_REQUEST_CREATED',
-        subject: 'Solicitaste un préstamo',
-        to: email,
-        parameters: {
-          borrowerName: fullName.split(' ')[0],
-          loanRequestAmount: formatCurrency(existingLoanRequest.amount),
-          link: selftWebUrl + 'loan-requests',
-        },
-      }),
-    ]);
+      const { user } = existingLoanRequest;
+
+      const { fullName, email } = user;
+
+      // send a mail to the admin and to the borrower
+      await Promise.all([
+        this.mailingService.sendEmail({
+          templateName: 'ADMINISTRATOR_LOAN_REQUEST_CREATED',
+          subject: `${fullName} ha solicitado un préstamo`,
+          to: 'cristiandavidippolito@gmail.com',
+          parameters: {
+            borrowerName: fullName,
+            loanRequestAmount: formatCurrency(existingLoanRequest.amount),
+            link: selftWebUrl,
+          },
+        }),
+        this.mailingService.sendEmail({
+          templateName: 'BORROWER_LOAN_REQUEST_CREATED',
+          subject: 'Solicitaste un préstamo',
+          to: email,
+          parameters: {
+            borrowerName: fullName.split(' ')[0],
+            loanRequestAmount: formatCurrency(existingLoanRequest.amount),
+            link: selftWebUrl + 'loan-requests',
+          },
+        }),
+      ]);
+    } catch (error) {
+      const message = error.message;
+
+      await this.eventMessageService.setError({
+        id: eventMessage._id,
+        error,
+      });
+
+      return {
+        status: error.status || 500,
+        message,
+        data: {},
+      };
+    }
   }
 }
