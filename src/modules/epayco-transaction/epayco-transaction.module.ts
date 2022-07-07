@@ -13,12 +13,14 @@ import { EpaycoTransactionController } from './epayco-transaction.controller';
 import { LoanModule } from '../loan/loan.module';
 import { RabbitLocalModuleModule } from '../../plugins/rabbit-local-module/rabbit-local-module.module';
 import { MovementModule } from '../movement/movement.module';
+import { EventMessageModule } from '../event-message/event-message.module';
 
 @Module({
   imports: [
     ConfigModule.forFeature(appConfig),
     TypeOrmModule.forFeature([EpaycoTransaction]),
     RabbitLocalModuleModule,
+    EventMessageModule,
     LoanModule,
     MovementModule,
   ],

@@ -41,4 +41,7 @@ export default Joi.object({
   MAILGUN_FROM: Joi.required(),
   MAILGUN_PRIVATE_KEY: Joi.required(),
   MAILGUN_PUBLIC_KEY: Joi.required(),
+
+  // MONGODB
+  MONGODB_URI: Joi.required(),
 });

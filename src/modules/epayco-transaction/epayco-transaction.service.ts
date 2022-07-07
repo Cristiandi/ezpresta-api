@@ -3,7 +3,6 @@ import {
   ConflictException,
   Inject,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -19,6 +18,7 @@ import { BaseService } from '../../common/base.service';
 import { RabbitLocalModuleService } from '../../plugins/rabbit-local-module/rabbit-local-module.service';
 import { LoanService } from '../loan/loan.service';
 import { MovementService } from '../movement/movement.service';
+import { EventMessageService } from '../event-message/event-message.service';
 
 import { hash, getRabbitMQExchangeName } from '../../utils';
 
@@ -34,6 +34,7 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     @InjectRepository(EpaycoTransaction)
     private readonly epaycoTransactionRepository: Repository<EpaycoTransaction>,
     private readonly rabbitLocalModuleService: RabbitLocalModuleService,
+    private readonly eventMessageService: EventMessageService,
     private readonly loanService: LoanService,
     private readonly movementService: MovementService,
   ) {
@@ -108,7 +109,11 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     queue: `${RABBITMQ_EXCHANGE}.payment_confirmation`,
   })
   public async confirmation(input: any) {
-    Logger.log('confirmation', EpaycoTransactionService.name);
+    const eventMessage = await this.eventMessageService.create({
+      routingKey: `${RABBITMQ_EXCHANGE}.payment_confirmation`,
+      functionName: 'confirmation',
+      data: input,
+    });
 
     const { x_id_invoice: epaycoTransactionUid } = input;
 
@@ -124,24 +129,34 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     });
 
     if (!existingEpaycoTransaction) {
-      Logger.warn(
-        `EpaycoTransaction not found: ${epaycoTransactionUid}`,
-        EpaycoTransactionService.name,
-      );
-      throw new NotFoundException(
-        `epayco transaction with uid ${epaycoTransactionUid} not found`,
-      );
+      const message = `epayco transaction with uid ${epaycoTransactionUid} not found`;
+
+      await this.eventMessageService.setError({
+        id: eventMessage._id,
+        error: new NotFoundException(message),
+      });
+
+      return {
+        status: 404,
+        message,
+        data: {},
+      };
     }
 
     // check if the transaction is already used
     if (existingEpaycoTransaction.used) {
-      Logger.warn(
-        `epayco transaction with uid ${epaycoTransactionUid} already used`,
-        EpaycoTransactionService.name,
-      );
-      throw new ConflictException(
-        `epayco transaction with uid ${epaycoTransactionUid} already used`,
-      );
+      const message = `epayco transaction with uid ${epaycoTransactionUid} already used`;
+
+      await this.eventMessageService.setError({
+        id: eventMessage._id,
+        error: new ConflictException(message),
+      });
+
+      return {
+        status: 409,
+        message,
+        data: {},
+      };
     }
 
     // update the epayco transaction with th reference
@@ -155,12 +170,23 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     // check the amount
     const { x_amount: amount } = input;
     if (parseFloat(amount) !== existingEpaycoTransaction.amount) {
+      const message = `epayco transaction with uid ${epaycoTransactionUid} amount mismatch`;
+
       await this.epaycoTransactionRepository.update(
         { id: existingEpaycoTransaction.id },
-        { status: -1, comment: 'amount mismatch' },
+        { status: -1, comment: message },
       );
 
-      throw new ConflictException('amount mismatch');
+      await this.eventMessageService.setError({
+        id: eventMessage._id,
+        error: new ConflictException(message),
+      });
+
+      return {
+        status: 409,
+        message,
+        data: {},
+      };
     }
 
     // check the signature
@@ -186,12 +212,23 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     );
 
     if (signature !== input.x_signature) {
+      const message = `epayco transaction with uid ${epaycoTransactionUid} signature mismatch`;
+
       await this.epaycoTransactionRepository.update(
         { id: existingEpaycoTransaction.id },
-        { status: -1, comment: 'signature mismatch' },
+        { status: -1, comment: message },
       );
 
-      throw new ConflictException('invalid signature');
+      await this.eventMessageService.setError({
+        id: eventMessage._id,
+        error: new ConflictException(message),
+      });
+
+      return {
+        status: 409,
+        message,
+        data: {},
+      };
     }
 
     // update the transaction
@@ -215,8 +252,18 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
           paymentDate: formatDateForPayment(new Date()),
         });
       } catch (error) {
-        Logger.error(error, EpaycoTransactionService.name);
-        throw error;
+        const message = error.message;
+
+        await this.eventMessageService.setError({
+          id: eventMessage._id,
+          error,
+        });
+
+        return {
+          status: 500,
+          message,
+          data: {},
+        };
       }
     }
   }

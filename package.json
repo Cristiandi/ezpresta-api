@@ -41,6 +41,7 @@
     "class-validator": "0.13.2",
     "form-data": "4.0.0",
     "handlebars": "4.7.7",
+    "hash-wasm": "4.9.0",
     "joi": "17.6.0",
     "mailgun.js": "7.0.3",
     "mjml": "4.12.0",

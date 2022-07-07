@@ -45,5 +45,8 @@ export default registerAs('config', () => {
       privateKey: process.env.MAILGUN_PRIVATE_KEY,
       publicKey: process.env.MAILGUN_PUBLIC_KEY,
     },
+    mongoDB: {
+      uri: process.env.MONGODB_URI,
+    },
   };
 });

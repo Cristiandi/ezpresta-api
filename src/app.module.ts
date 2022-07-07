@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
 
 import appConfig from './config/app.config';
 import appSchema from './config/app.schema';
@@ -18,6 +19,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { LoanRequestModule } from './modules/loan-request/loan-request.module';
 import { EpaycoTransactionModule } from './modules/epayco-transaction/epayco-transaction.module';
 import { MailingModule } from './plugins/mailing/mailing.module';
+import { EventMessageModule } from './modules/event-message/event-message.module';
 
 @Module({
   imports: [
@@ -41,6 +43,17 @@ import { MailingModule } from './plugins/mailing/mailing.module';
       },
     }),
 
+    // Mongoose
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        return {
+          uri: configService.get<string>('config.mongoDB.uri'),
+        };
+      },
+    }),
+
     CommonModule,
 
     UserModule,
@@ -58,6 +71,8 @@ import { MailingModule } from './plugins/mailing/mailing.module';
     EpaycoTransactionModule,
 
     MailingModule,
+
+    EventMessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],
