@@ -1,6 +1,7 @@
 import {
   ConflictException,
   forwardRef,
+  HttpException,
   Inject,
   Injectable,
   Logger,
@@ -266,7 +267,7 @@ export class MovementService extends BaseService<Movement> {
     routingKey: `${RABBITMQ_EXCHANGE}.settle_loan_interests`,
     queue: `${RABBITMQ_EXCHANGE}.settle_loan_interests`,
   })
-  public async settleLoanInterests(input: SettleLoanInterestsInput) {
+  private async settleLoanInterestsRPC(input: SettleLoanInterestsInput) {
     const eventMessage = await this.eventMessageService.create({
       routingKey: `${RABBITMQ_EXCHANGE}.settle_loan_interests`,
       functionName: 'settleLoanInterests',
@@ -357,13 +358,19 @@ export class MovementService extends BaseService<Movement> {
         currentDateTime.getDate(),
       );
 
-      Logger.log(`startDate ${startDate}`, MovementService.name);
-      Logger.log(`currentDate ${currentDate}`, MovementService.name);
+      Logger.log(`${loanUid} | startDate ${startDate}`, MovementService.name);
+      Logger.log(
+        `${loanUid} | currentDate ${currentDate}`,
+        MovementService.name,
+      );
 
       // get the number of days in order know how many interest movements will be created by day
       const numberOfDays = getNumberOfDays(startDate, currentDate);
 
-      Logger.log(`numberOfDays ${numberOfDays}`, MovementService.name);
+      Logger.log(
+        `${loanUid} | numberOfDays ${numberOfDays}`,
+        MovementService.name,
+      );
 
       let iterationDate = startDate;
 
@@ -450,6 +457,16 @@ export class MovementService extends BaseService<Movement> {
         data: {},
       };
     }
+  }
+
+  public async settleLoanInterests(input: SettleLoanInterestsInput) {
+    const { status, message, data } = await this.settleLoanInterestsRPC(input);
+
+    if (status !== 200) {
+      throw new HttpException(message, status);
+    }
+
+    return data;
   }
 
   // this function returns the minimum paument amount of the loan
