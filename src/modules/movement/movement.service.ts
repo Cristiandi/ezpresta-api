@@ -356,8 +356,13 @@ export class MovementService extends BaseService<Movement> {
         currentDateTime.getDate(),
       );
 
+      Logger.log(`startDate ${startDate}`, MovementService.name);
+      Logger.log(`currentDate ${currentDate}`, MovementService.name);
+
       // get the number of days in order know how many interest movements will be created by day
       const numberOfDays = getNumberOfDays(startDate, currentDate);
+
+      Logger.log(`numberOfDays ${numberOfDays}`, MovementService.name);
 
       let iterationDate = startDate;
 
