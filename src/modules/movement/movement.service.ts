@@ -26,6 +26,7 @@ import {
   getNumberOfDays,
   addMinutes,
   getRabbitMQExchangeName,
+  delay,
 } from '../../utils';
 
 import { GetLoanAmountToSettleInterestInput } from './dto/get-loan-amount-to-settle-interest-input.dto';
@@ -427,6 +428,14 @@ export class MovementService extends BaseService<Movement> {
           }
         }
       }
+
+      await delay(500);
+
+      return {
+        status: 200,
+        message: 'success',
+        data: {},
+      };
     } catch (error) {
       const message = error.message;
 
