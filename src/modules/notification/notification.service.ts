@@ -84,7 +84,7 @@ export class NotificationService {
       const { sid } = await this.twilioClient.messages.create({
         body: message,
         messagingServiceSid,
-        to: `+57${'3052151278'}`,
+        to: `+57${user.phone}`,
       });
 
       Logger.log(`twilio message sent: ${sid}`, NotificationService.name);
