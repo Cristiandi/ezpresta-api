@@ -9,10 +9,12 @@ import { UserModule } from '../user/user.module';
 import { LoanModule } from '../loan/loan.module';
 import { MovementModule } from '../movement/movement.module';
 import { EventMessageModule } from '../event-message/event-message.module';
+import { MailingModule } from '../../plugins/mailing/mailing.module';
 
 @Module({
   imports: [
     ConfigModule.forFeature(appConfig),
+    MailingModule,
     EventMessageModule,
     UserModule,
     LoanModule,

@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 import { ConfigType } from '@nestjs/config';
 import * as twilio from 'twilio';
@@ -11,8 +11,10 @@ import { UserService } from '../user/user.service';
 import { LoanService } from '../loan/loan.service';
 import { MovementService } from '../movement/movement.service';
 import { EventMessageService } from '../event-message/event-message.service';
+import { MailingService } from '../../plugins/mailing/mailing.service';
 
 import { NotifyOverdueLoanInputDto } from './dto/notify-over-due-loan-input.dto';
+import { NotifyReceivedPaymentInput } from './dto/notify-received-payment-input.dto';
 
 const RABBITMQ_EXCHANGE = getRabbitMQExchangeName();
 
@@ -23,6 +25,7 @@ export class NotificationService {
   constructor(
     @Inject(appConfig.KEY)
     private readonly appConfiguration: ConfigType<typeof appConfig>,
+    private readonly mailingService: MailingService,
     private readonly eventMessageService: EventMessageService,
     private readonly userService: UserService,
     private readonly loanService: LoanService,
@@ -39,7 +42,7 @@ export class NotificationService {
     routingKey: `${RABBITMQ_EXCHANGE}.overdue_loan`,
     queue: `${RABBITMQ_EXCHANGE}.overdue_loan`,
   })
-  async notifyOverdueLoan(input: NotifyOverdueLoanInputDto) {
+  async notifyOverdueLoanRPC(input: NotifyOverdueLoanInputDto) {
     const eventMessage = await this.eventMessageService.create({
       routingKey: `${RABBITMQ_EXCHANGE}.overdue_loan`,
       functionName: 'notifyOverdueLoan',
@@ -88,6 +91,77 @@ export class NotificationService {
       });
 
       Logger.log(`twilio message sent: ${sid}`, NotificationService.name);
+    } catch (error) {
+      const message = error.message;
+
+      await this.eventMessageService.setError({
+        id: eventMessage._id,
+        error,
+      });
+
+      return {
+        status: error.status || 500,
+        message,
+        data: {},
+      };
+    }
+  }
+
+  @RabbitRPC({
+    exchange: RABBITMQ_EXCHANGE,
+    routingKey: `${RABBITMQ_EXCHANGE}.received_payment`,
+    queue: `${RABBITMQ_EXCHANGE}.received_payment`,
+  })
+  async notifyReceivedPayment(input: NotifyReceivedPaymentInput) {
+    const eventMessage = await this.eventMessageService.create({
+      routingKey: `${RABBITMQ_EXCHANGE}.received_payment`,
+      functionName: 'received_payment',
+      data: input,
+    });
+
+    try {
+      const { movementUid } = input;
+
+      // get the movement
+      const existingMovement = await this.movementService.getOneByFields({
+        fields: {
+          uid: movementUid,
+        },
+        relations: ['loan', 'movementType'],
+        loadRelationIds: false,
+      });
+
+      // check if the movement is a payment
+      const { movementType } = existingMovement;
+
+      // TODO:  use a parameter instead of hardcoded value
+      if (movementType.code !== '04P') {
+        throw new ConflictException(
+          `the movement ${movementUid} is not a payment`,
+          NotificationService.name,
+        );
+      }
+
+      const { loan, amount: paymentAmount } = existingMovement;
+
+      // get the user from the loan
+      const { user } = await this.loanService.getOneByFields({
+        fields: {
+          uid: loan.uid,
+        },
+        relations: ['user'],
+        loadRelationIds: false,
+      });
+
+      await this.mailingService.sendEmail({
+        templateName: 'BORROWER_RECEIVED_PAYMENT',
+        subject: 'Recibimos tú pago!',
+        to: user.email,
+        parameters: {
+          borrowerName: user.fullName.split(' ')[0],
+          paymentAmount: formatCurrency(paymentAmount * -1),
+        },
+      });
     } catch (error) {
       const message = error.message;
 

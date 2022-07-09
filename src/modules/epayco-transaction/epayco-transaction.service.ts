@@ -108,7 +108,7 @@ export class EpaycoTransactionService extends BaseService<EpaycoTransaction> {
     routingKey: `${RABBITMQ_EXCHANGE}.payment_confirmation`,
     queue: `${RABBITMQ_EXCHANGE}.payment_confirmation`,
   })
-  public async confirmation(input: any) {
+  public async confirmationRPC(input: any) {
     const eventMessage = await this.eventMessageService.create({
       routingKey: `${RABBITMQ_EXCHANGE}.payment_confirmation`,
       functionName: 'confirmation',

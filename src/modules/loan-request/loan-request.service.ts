@@ -201,7 +201,7 @@ export class LoanRequestService extends BaseService<LoanRequest> {
     routingKey: `${RABBITMQ_EXCHANGE}.loan_request_created`,
     queue: `${RABBITMQ_EXCHANGE}.loan_request_created`,
   })
-  public async loanRequestCreated(input: any) {
+  public async loanRequestCreatedRPC(input: any) {
     const eventMessage = await this.eventMessageService.create({
       routingKey: `${RABBITMQ_EXCHANGE}.loan_request_created`,
       functionName: 'loanRequestCreated',

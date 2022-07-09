@@ -134,6 +134,7 @@ export class MovementService extends BaseService<Movement> {
       );
     }
 
+    // create the movement
     const { loan } = loanMovement;
 
     const { paymentDate } = input;
@@ -147,9 +148,13 @@ export class MovementService extends BaseService<Movement> {
       at: addMinutes(parsedPaymentDate, parsedPaymentDate.getTimezoneOffset()),
     });
 
+    // save the movement
     const saved = await this.movementRepository.save(created);
 
-    // TODO: publish payment event notification to rabbitmq
+    // publish the event
+    await this.rabbitLocalModuleService.publishReceivedPayment({
+      movementUid: saved.uid,
+    });
 
     return saved;
   }
