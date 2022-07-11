@@ -44,4 +44,10 @@ export default Joi.object({
 
   // MONGODB
   MONGODB_URI: Joi.required(),
+
+  // REDIS
+  REDIS_CLIENT_NAME: Joi.required(),
+  REDIS_HOST: Joi.required(),
+  REDIS_PORT: Joi.number().default(6379),
+  REDIS_PASSWORD: Joi.required(),
 });

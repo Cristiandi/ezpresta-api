@@ -94,6 +94,12 @@ export class Loan extends BaseEntity {
   })
   startDate: Date;
 
+  @Column({
+    type: 'boolean',
+    default: false,
+  })
+  paid?: boolean;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

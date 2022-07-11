@@ -87,7 +87,11 @@ export class LoanService extends BaseService<Loan> {
 
   // function to settle the loans interests
   public async interestSettlement(): Promise<void> {
-    const loans = await this.loanRepository.find();
+    const loans = await this.loanRepository.find({
+      where: {
+        paid: false,
+      },
+    });
 
     (async () => {
       for (const loan of loans) {
@@ -212,6 +216,52 @@ export class LoanService extends BaseService<Loan> {
       loanPaymentDate,
       loanPaymentStatus,
       totalLoanAmount,
+    };
+  }
+
+  public async getOverview() {
+    // get the loans that are not paid
+    const existingLoans = await this.loanRepository.find({
+      where: {
+        paid: false,
+      },
+    });
+
+    // determinate the total amount of loans and
+    // the total minimum loans payment amount
+    const { totalLoansAmount, totalLoansMinimumPaymentAmount } =
+      await existingLoans.reduce(
+        async (pre, cur) => {
+          const [minimumLoanPaymentAmount, totalLoanAmount] = await Promise.all(
+            [
+              await this.movementService.getMinimumLoanPaymentAmount({
+                loanUid: cur.uid,
+              }),
+              await this.movementService.getTotalLoanAmount({
+                loanUid: cur.uid,
+              }),
+            ],
+          );
+
+          const resolvedPre = await pre;
+
+          return {
+            totalLoansAmount: resolvedPre.totalLoansAmount + totalLoanAmount,
+            totalLoansMinimumPaymentAmount:
+              resolvedPre.totalLoansMinimumPaymentAmount +
+              minimumLoanPaymentAmount,
+          };
+        },
+        Promise.resolve({
+          totalLoansAmount: 0,
+          totalLoansMinimumPaymentAmount: 0,
+        }),
+      );
+
+    return {
+      numberOfLoans: existingLoans.length,
+      totalLoansAmount,
+      totalLoansMinimumPaymentAmount,
     };
   }
 }

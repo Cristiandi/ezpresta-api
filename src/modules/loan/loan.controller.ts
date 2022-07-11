@@ -1,10 +1,13 @@
 import {
   Body,
+  CacheInterceptor,
+  CacheTTL,
   Controller,
   Get,
   Param,
   Post,
   Query,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -19,6 +22,7 @@ import { GetUserLoansParamsInput } from './dto/get-user-loans-params-input.dto';
 import { GetUserLoansQueryInput } from './dto/get-user-loans-query-input.dto';
 import { GetLoanDetailsInput } from './dto/get-loan-details-input.dto';
 
+@UseInterceptors(CacheInterceptor)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 @Controller('loans')
 export class LoanController {
@@ -49,5 +53,12 @@ export class LoanController {
   @Get('details/:loanUid')
   getLoanDetails(@Param() params: GetLoanDetailsInput) {
     return this.loanService.getLoanDetails(params);
+  }
+
+  @CacheTTL(3600 * 24)
+  @PermissionName('loans:admin:read')
+  @Get('overview')
+  getOverview() {
+    return this.loanService.getOverview();
   }
 }

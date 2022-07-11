@@ -48,5 +48,11 @@ export default registerAs('config', () => {
     mongoDB: {
       uri: process.env.MONGODB_URI,
     },
+    redis: {
+      clientName: process.env.REDIS_CLIENT_NAME,
+      host: process.env.REDIS_HOST,
+      port: process.env.REDIS_PORT,
+      password: process.env.REDIS_PASSWORD,
+    },
   };
 });

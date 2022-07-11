@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import * as redisStore from 'cache-manager-redis-store';
+import { CacheModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -53,6 +54,35 @@ import { EventMessageModule } from './modules/event-message/event-message.module
         };
       },
     }),
+
+    // Cache
+    CacheModule.register({
+      isGlobal: true,
+      store: redisStore,
+      name: process.env.REDIS_CLIENT_NAME,
+      host: process.env.REDIS_HOST,
+      port: +process.env.REDIS_PORT,
+      password: process.env.REDIS_PASSWORD,
+      ttl: 60,
+    }),
+
+    /*
+    CacheModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        return {
+          isGlobal: true,
+          store: redisStore,
+          name: configService.get<string>('config.redis.clientName'),
+          host: configService.get<string>('config.redis.host'),
+          port: configService.get<number>('config.redis.port'),
+          password: configService.get<string>('config.redis.password'),
+          ttl: 60,
+        };
+      },
+    }),
+    */
 
     CommonModule,
 

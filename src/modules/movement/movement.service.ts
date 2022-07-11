@@ -501,7 +501,7 @@ export class MovementService extends BaseService<Movement> {
 
       const query = this.movementRepository
         .createQueryBuilder('m')
-        .select('SUM(m.amount)', 'amount')
+        .select('COALESCE(SUM(m.amount), 0)', 'amount')
         .where('m.loan = :loanId', { loanId: loan.id })
         .andWhere('m.movementType NOT IN (:...ids)', {
           ids: [loanType.id, paymentType.id],
@@ -518,7 +518,7 @@ export class MovementService extends BaseService<Movement> {
     // in case there is no payment, we need to get all the interests generated
     const query = this.movementRepository
       .createQueryBuilder('m')
-      .select('SUM(m.amount)', 'amount')
+      .select('COALESCE(SUM(m.amount), 0)', 'amount')
       .where('m.loan = :loanId', { loanId: loan.id })
       .andWhere('m.movementType NOT IN (:...ids)', {
         ids: [loanType.id],
@@ -526,7 +526,7 @@ export class MovementService extends BaseService<Movement> {
 
     const { amount } = await query.getRawOne();
 
-    return amount;
+    return amount ? parseFloat(amount) : amount;
   }
 
   // this function returns the loan payment date
