@@ -572,7 +572,7 @@ export class MovementService extends BaseService<Movement> {
     }
 
     // get the
-    const [interestType, overdueInterestType] = await Promise.all([
+    const [interestType, overdueInterestType, paymentType] = await Promise.all([
       this.movementTypeService.getOneByFields({
         fields: { code: '02IC' },
         checkIfExists: true,
@@ -583,9 +583,18 @@ export class MovementService extends BaseService<Movement> {
         checkIfExists: true,
         loadRelationIds: false,
       }),
+      this.movementTypeService.getOneByFields({
+        fields: { code: '04P' },
+        checkIfExists: true,
+        loadRelationIds: false,
+      }),
     ]);
 
     const { loan } = loanMovement;
+
+    if (loan.paid) {
+      return 'pagado';
+    }
 
     // get the last interest movement
     const lastInterestMovement = await this.movementRepository
@@ -600,6 +609,20 @@ export class MovementService extends BaseService<Movement> {
       .getOne();
 
     if (!lastInterestMovement) {
+      return 'al día';
+    }
+
+    // try to get a payment for the same date that the interest movement
+    const paymentMovement = await this.movementRepository
+      .createQueryBuilder('m')
+      .where('m.loan = :loanId', { loanId: loan.id })
+      .andWhere('m.movementType = :paymentTypeId', {
+        paymentTypeId: paymentType.id,
+      })
+      .andWhere('m.at = :date', { date: lastInterestMovement.at })
+      .getOne();
+
+    if (paymentMovement) {
       return 'al día';
     }
 

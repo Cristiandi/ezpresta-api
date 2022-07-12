@@ -21,6 +21,7 @@ import { CreateLoanInput } from './dto/create-loan-input.dto';
 import { GetUserLoansParamsInput } from './dto/get-user-loans-params-input.dto';
 import { GetUserLoansQueryInput } from './dto/get-user-loans-query-input.dto';
 import { GetLoanDetailsInput } from './dto/get-loan-details-input.dto';
+import { GetAllBorrowersInput } from './dto/get-all-borrowers-input.dto';
 
 @UseInterceptors(CacheInterceptor)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
@@ -60,5 +61,12 @@ export class LoanController {
   @Get('overview')
   getOverview() {
     return this.loanService.getOverview();
+  }
+
+  @CacheTTL(3600 * 24)
+  @PermissionName('loans:read:admin')
+  @Get('admin/borrowers')
+  getAllBorrowers(@Query() input: GetAllBorrowersInput) {
+    return this.loanService.getAllBorrowers(input);
   }
 }

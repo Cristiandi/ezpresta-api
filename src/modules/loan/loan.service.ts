@@ -19,6 +19,7 @@ import { GetUserLoansParamsInput } from './dto/get-user-loans-params-input.dto';
 import { GetUserLoansQueryInput } from './dto/get-user-loans-query-input.dto';
 import { UserLoansOutput } from './dto/user-loans-output.dto';
 import { GetLoanDetailsInput } from './dto/get-loan-details-input.dto';
+import { GetAllBorrowersInput } from './dto/get-all-borrowers-input.dto';
 
 @Injectable()
 export class LoanService extends BaseService<Loan> {
@@ -219,6 +220,7 @@ export class LoanService extends BaseService<Loan> {
     };
   }
 
+  // function to get the overview of the loans
   public async getOverview() {
     // get the loans that are not paid
     const existingLoans = await this.loanRepository.find({
@@ -263,5 +265,46 @@ export class LoanService extends BaseService<Loan> {
       totalLoansAmount,
       totalLoansMinimumPaymentAmount,
     };
+  }
+
+  public async getAllBorrowers(input: GetAllBorrowersInput) {
+    const { q, limit, skip } = input;
+
+    const exisingUsers = await this.userService.getAll({
+      q,
+      limit,
+      skip,
+    });
+
+    const response = await Promise.all(
+      exisingUsers.map(async (user) => {
+        const loans = await this.loanRepository.find({
+          where: {
+            user: {
+              id: user.id,
+            },
+          },
+        });
+
+        const loanPaymentStatuses = await Promise.all(
+          loans.map((loan) =>
+            this.movementService.getLoanPaymentStatus({
+              loanUid: loan.uid,
+            }),
+          ),
+        );
+
+        const userInOverdue = loanPaymentStatuses.find(
+          (loanPaymentStatus) => loanPaymentStatus === 'atrasado',
+        );
+
+        return {
+          ...user,
+          inOverdue: userInOverdue ? true : false,
+        };
+      }),
+    );
+
+    return response;
   }
 }

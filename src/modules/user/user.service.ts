@@ -24,6 +24,7 @@ import { ChangeUserPhoneInput } from './dto/change-user-phone-input.dto';
 import { ChangeUserAddressInput } from './dto/change-user-address-input.dto';
 import { SendUserResetPasswordEmail } from './dto/send-user-reset-password-email-input.dto';
 import { ChangeUserPasswordInput } from './dto/change-user-password-input.dto';
+import { GetAllUsersInput } from './dto/get-all-users-input.dto';
 
 @Injectable()
 export class UserService extends BaseService<User> {
@@ -136,6 +137,20 @@ export class UserService extends BaseService<User> {
     });
 
     return existingUser;
+  }
+
+  public async getAll(input: GetAllUsersInput) {
+    const { limit, skip } = input;
+
+    const existingUsers = await this.userRepository.find({
+      take: limit ? parseInt(limit, 10) : undefined,
+      skip: skip ? parseInt(skip, 10) : undefined,
+      order: {
+        fullName: 'ASC',
+      },
+    });
+
+    return existingUsers;
   }
 
   public async deleteBorrower(input: GetOneUserInput): Promise<User> {
