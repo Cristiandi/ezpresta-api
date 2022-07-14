@@ -379,8 +379,7 @@ export class MovementService extends BaseService<Movement> {
 
       let iterationDate = startDate;
 
-      // start from 1 to prevent the creation of a movement that didn't happen yet
-      for (let i = numberOfDays > 1 ? 1 : 0; i < numberOfDays; i++) {
+      for (let i = 0; i < numberOfDays; i++) {
         iterationDate = addDays(iterationDate, 1);
 
         // console.log('iterationDate', iterationDate);
