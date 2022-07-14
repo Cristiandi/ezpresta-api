@@ -32,7 +32,7 @@ export class MovementController {
     return this.movementService.createPaymentMovement(input);
   }
 
-  @PermissionName('movements:user:read')
+  @PermissionName('movements:read')
   @Get('loan/:loanUid/payments')
   getLoanPayments(
     @Param() paramsInput: GetLoanPaymentsParamsInput,
@@ -41,7 +41,7 @@ export class MovementController {
     return this.movementService.getLoanPayments(paramsInput, queryInput);
   }
 
-  @PermissionName('movements:user:read')
+  @PermissionName('movements:read')
   @Get('loan/:loanUid/movements')
   getLoanMovements(
     @Param() paramsInput: GetLoanMovementsParamsInput,
