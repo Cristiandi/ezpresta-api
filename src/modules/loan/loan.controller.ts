@@ -41,7 +41,7 @@ export class LoanController {
     return this.loanService.interestSettlement();
   }
 
-  @PermissionName('loans:user:read')
+  @PermissionName('loans:read')
   @Get('user-loans/:userAuthUid')
   getUserLoans(
     @Param() params: GetUserLoansParamsInput,
@@ -50,7 +50,7 @@ export class LoanController {
     return this.loanService.getUserLoans(params, query);
   }
 
-  @PermissionName('loans:user:read')
+  @PermissionName('loans:read')
   @Get('details/:loanUid')
   getLoanDetails(@Param() params: GetLoanDetailsInput) {
     return this.loanService.getLoanDetails(params);
