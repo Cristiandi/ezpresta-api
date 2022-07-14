@@ -153,6 +153,7 @@ export class LoanService extends BaseService<Loan> {
         return {
           id: loan.id,
           uid,
+          amount: loan.amount,
           description: loan.description,
           minimumLoanPaymentAmount,
           loanPaymentDate,
