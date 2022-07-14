@@ -33,7 +33,7 @@ export class UserController {
     return this.userService.createBorrower(input);
   }
 
-  @PermissionName('user:read')
+  @PermissionName('users:read')
   @Get('/:authUid')
   getOne(@Param() input: GetOneUserInput) {
     return this.userService.getOne(input);
