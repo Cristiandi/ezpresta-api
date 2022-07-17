@@ -19,7 +19,7 @@ import { CreateEpaycoTransactionInput } from './dto/create-epayco-transaction-in
 export class EpaycoTransactionController {
   constructor(private readonly service: EpaycoTransactionService) {}
 
-  @PermissionName('epaycTtransactions:handle')
+  @PermissionName('epaycoTransactions:handle')
   @Post()
   create(@Body() input: CreateEpaycoTransactionInput) {
     return this.service.create(input);

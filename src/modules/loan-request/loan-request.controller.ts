@@ -1,5 +1,6 @@
 import {
   Body,
+  CacheInterceptor,
   Controller,
   Delete,
   Get,
@@ -7,6 +8,9 @@ import {
   Patch,
   Post,
   Query,
+  UseInterceptors,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { PermissionName } from 'nestjs-basic-acl-sdk';
 
@@ -18,6 +22,8 @@ import { GetUserLoanRequestsQueryInput } from './dto/get-user-loan-requests-quer
 import { GetOneLoanRequestInput } from './dto/get-one-loan-request-input.dto';
 import { UpdateUserLoanRequestInput } from './dto/update-user-loan-request-input.dto';
 
+@UseInterceptors(CacheInterceptor)
+@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 @Controller('loan-requests')
 export class LoanRequestController {
   constructor(private readonly service: LoanRequestService) {}
