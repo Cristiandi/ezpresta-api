@@ -44,13 +44,13 @@ export class LoanRequestController {
   }
 
   @PermissionName('loanRequests:read')
-  @Get('/:loanRequestId')
+  @Get('/:loanRequestUid')
   getOne(@Param() params: GetOneLoanRequestInput) {
     return this.service.getOne(params);
   }
 
   @PermissionName('loanRequests:handle')
-  @Patch('/:loanRequestId')
+  @Patch('/:loanRequestUid')
   updateUserLoanRequest(
     @Param() params: GetOneLoanRequestInput,
     @Body() input: UpdateUserLoanRequestInput,
@@ -59,7 +59,7 @@ export class LoanRequestController {
   }
 
   @PermissionName('loanRequests:handle')
-  @Delete('/:loanRequestId')
+  @Delete('/:loanRequestUid')
   deleteUserLoanRequest(@Param() params: GetOneLoanRequestInput) {
     return this.service.delete(params);
   }
