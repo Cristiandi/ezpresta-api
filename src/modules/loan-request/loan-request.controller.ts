@@ -63,4 +63,10 @@ export class LoanRequestController {
   deleteUserLoanRequest(@Param() params: GetOneLoanRequestInput) {
     return this.service.delete(params);
   }
+
+  @PermissionName('loanRequests:handle:admin')
+  @Patch('/:loanRequestUid/review')
+  reviewLoanRequest(@Param() params: GetOneLoanRequestInput) {
+    return this.service.reviewLoanRequest(params);
+  }
 }
