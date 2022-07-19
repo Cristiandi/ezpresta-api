@@ -1,0 +1,82 @@
+<mjml>
+
+  <mj-head>
+    <mj-style inline="inline">
+      body {
+      padding: 20px;
+      }
+
+      a {
+      color: #1C69D3
+      }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#D8D8D8">
+
+    <!-- <mj-include path='./src/common/templates/emails/shared/header.mjml'></mj-include> -->
+
+    <mj-section background-color="#FFF">
+      <mj-column width="100%">
+        <mj-image align="center" width="200px" src="https://www.ezpresta.co/logo512.png">
+        </mj-image>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#FFF" padding-top="0">
+      <mj-column>
+        <mj-text font-weight="bold">
+          Hola {{borrowerName}}!
+        </mj-text>
+        <mj-text>
+          Tu solicitud de prestamo, por valor de:
+        </mj-text>
+        <mj-text font-weight="bold">
+          {{loanRequestAmount}}
+        </mj-text>
+        <mj-text>
+          Ha sido aprobada, pronto nos pondremos en contacto contigo, para definir los detalles de tu préstamo.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#FFF" padding-top="0">
+      <mj-column>
+        <mj-button background-color="#1C69D3" color="white" href="{{link}}">
+          Solicitudes
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+
+    <mj-section background-color="#FFF" padding-top="0" padding-bottom="0">
+      <mj-column>
+        <mj-text line-height="5px">
+          <p>Saludos,</p>
+          <p> Equipo EZPresta</p>
+          <br />
+          <p><a href="mailto:info@ezpresta.co">info@ezpresta.co</a></p>
+          <!-- <p><a href="tel:1-888-433-6456">1-888-433-6456</a> (MILO)</p> -->
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#FFF" padding-top="0">
+      <mj-column vertical-align="middle">
+        <mj-social icon-size="30px" mode="horizontal" inner-padding="15px">
+          <mj-social-element src="https://storage.googleapis.com/comodin-cristiandi-bucket/public/instagram.jpg" href="https://www.instagram.com/ezpresta"></mj-social-element>
+          <mj-social-element src="https://storage.googleapis.com/comodin-cristiandi-bucket/public/twitter.jpg" href="https://twitter.com/ezpresta"></mj-social-element>
+          <mj-social-element src="https://storage.googleapis.com/comodin-cristiandi-bucket/public/facebook.jpg" href="https://www.facebook.com/ezpresta"></mj-social-element>
+          <mj-social-element src="https://storage.googleapis.com/comodin-cristiandi-bucket/public/linkedin.jpg" href="https://www.linkedin.com/company/ezpresta"></mj-social-element>
+        </mj-social>
+      </mj-column>
+      <mj-column vertical-align="middle">
+        <mj-button font-weight="bold" font-size="16px" width="180px" background-color="#000000" color="#FFF" href="https://www.ezpresta.co/">
+          EZPresta
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+
+</mjml>
