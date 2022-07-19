@@ -357,4 +357,96 @@ export class LoanRequestService extends BaseService<LoanRequest> {
       };
     }
   }
+
+  public async rejectLoanRequest(input: GetOneLoanRequestInput) {
+    const { loanRequestUid } = input;
+
+    const existingLoanRequest = await this.getOneByFields({
+      fields: {
+        uid: loanRequestUid,
+      },
+      checkIfExists: true,
+      loadRelationIds: false,
+    });
+
+    if (existingLoanRequest.status !== LoanRequestStatus.REVISION) {
+      throw new ConflictException(
+        `the loan request is not in the ${LoanRequestStatus.REVISION} status`,
+      );
+    }
+
+    const preloadedLoanRequest = await this.loanRequestRepository.preload({
+      id: existingLoanRequest.id,
+      status: LoanRequestStatus.RECHAZADA,
+    });
+
+    const savedLoanRequest = await this.loanRequestRepository.save(
+      preloadedLoanRequest,
+    );
+
+    // publish a event to notify the user
+    await this.rabbitLocalModuleService.publishLoanRequestRejected({
+      loanRequestUid: savedLoanRequest.uid,
+    });
+
+    return savedLoanRequest;
+  }
+
+  @RabbitRPC({
+    exchange: RABBITMQ_EXCHANGE,
+    routingKey: `${RABBITMQ_EXCHANGE}.loan_request_rejected`,
+    queue: `${RABBITMQ_EXCHANGE}.loan_request_rejected`,
+  })
+  public async loanRequestRejected(input: any) {
+    const eventMessage = await this.eventMessageService.create({
+      routingKey: `${RABBITMQ_EXCHANGE}.loan_request_rejected`,
+      functionName: 'loanRequestRejected',
+      data: input,
+    });
+
+    try {
+      const { loanRequestUid } = input;
+      const {
+        app: { selftWebUrl },
+      } = this.appConfiguration;
+
+      const existingLoanRequest = await this.getOneByFields({
+        fields: {
+          uid: loanRequestUid,
+        },
+        checkIfExists: true,
+        loadRelationIds: false,
+        relations: ['user'],
+      });
+
+      const { user } = existingLoanRequest;
+
+      const { fullName, email } = user;
+
+      // send to the borrower
+      await this.mailingService.sendEmail({
+        templateName: 'BORROWER_LOAN_REQUEST_REJECTED',
+        subject: 'Tu solicitud de préstamo...',
+        to: email,
+        parameters: {
+          borrowerName: fullName.split(' ')[0],
+          loanRequestAmount: formatCurrency(existingLoanRequest.amount),
+          link: selftWebUrl + 'loan-requests',
+        },
+      });
+    } catch (error) {
+      const message = error.message;
+
+      await this.eventMessageService.setError({
+        id: eventMessage._id,
+        error,
+      });
+
+      return {
+        status: error.status || 500,
+        message,
+        data: {},
+      };
+    }
+  }
 }

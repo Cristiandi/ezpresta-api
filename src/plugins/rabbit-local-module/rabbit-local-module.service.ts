@@ -11,6 +11,7 @@ import { PublishSettleLoanInterestsInput } from './dto/publish-settle-loan-inter
 import { PublishLoanRequestCreatedInput } from './dto/publish-loan-request-created-input.dto';
 import { PublishReceivedPaymentInput } from './dto/publish-received-payment-input.dto';
 import { PublishLoanRequestOnReviewInput } from './dto/publish-loan-request-on-review-input.dto';
+import { PublishLoanRequestRejectedInput } from './dto/publish-loan-request-rejected-input.dto';
 
 @Injectable()
 export class RabbitLocalModuleService {
@@ -122,6 +123,24 @@ export class RabbitLocalModuleService {
     const { exchangeName } = this;
 
     const routingKey = `${exchangeName}.loan_request_on_review`;
+
+    await this.amqpConnection.publish(exchangeName, routingKey, {
+      ...input,
+    });
+
+    Logger.log(
+      `message published to exchange ${exchangeName} ` +
+        `for routing key ${routingKey} with input: ${JSON.stringify(input)}`,
+      RabbitLocalModuleService.name,
+    );
+  }
+
+  public async publishLoanRequestRejected(
+    input: PublishLoanRequestRejectedInput,
+  ): Promise<void> {
+    const { exchangeName } = this;
+
+    const routingKey = `${exchangeName}.loan_request_rejected`;
 
     await this.amqpConnection.publish(exchangeName, routingKey, {
       ...input,

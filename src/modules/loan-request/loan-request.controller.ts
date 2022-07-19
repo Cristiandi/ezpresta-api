@@ -69,4 +69,10 @@ export class LoanRequestController {
   reviewLoanRequest(@Param() params: GetOneLoanRequestInput) {
     return this.service.reviewLoanRequest(params);
   }
+
+  @PermissionName('loanRequests:handle:admin')
+  @Patch('/:loanRequestUid/reject')
+  rejectLoanRequest(@Param() params: GetOneLoanRequestInput) {
+    return this.service.rejectLoanRequest(params);
+  }
 }
