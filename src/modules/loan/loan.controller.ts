@@ -63,7 +63,7 @@ export class LoanController {
     return this.loanService.getOverview();
   }
 
-  @CacheTTL(3600 * 24)
+  @CacheTTL(3600)
   @PermissionName('loans:read:admin')
   @Get('admin/borrowers')
   getAllBorrowers(@Query() input: GetAllBorrowersInput) {
