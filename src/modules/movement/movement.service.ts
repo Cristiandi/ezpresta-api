@@ -46,6 +46,7 @@ import { GetLoanMovementsParamsInput } from './dto/get-loan-movements-params-inp
 import { GetLoanMovementsQueryInput } from './dto/get-loan-movements-query-input.dto';
 
 const RABBITMQ_EXCHANGE = getRabbitMQExchangeName();
+const MAXIMUM_AMOUNT_TO_FORGIVE = 100;
 
 @Injectable()
 export class MovementService extends BaseService<Movement> {
@@ -150,6 +151,20 @@ export class MovementService extends BaseService<Movement> {
 
     // save the movement
     const saved = await this.movementRepository.save(created);
+
+    // get the total loan amount
+    const totalLoanAmount = await this.getTotalLoanAmount({
+      loanUid,
+    });
+
+    // if the total amount is zero or less than MAXIMUM_AMOUNT_TO_FORGIVE,
+    // then the loan is paid
+    if (totalLoanAmount < MAXIMUM_AMOUNT_TO_FORGIVE) {
+      // update the loan status to paid
+      await this.loanService.loanHasBeenPaid({
+        loanUid,
+      });
+    }
 
     // publish the event
     await this.rabbitLocalModuleService.publishReceivedPayment({

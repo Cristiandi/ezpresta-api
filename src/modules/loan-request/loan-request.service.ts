@@ -487,7 +487,7 @@ export class LoanRequestService extends BaseService<LoanRequest> {
   @RabbitRPC({
     exchange: RABBITMQ_EXCHANGE,
     routingKey: `${RABBITMQ_EXCHANGE}.loan_request_approved`,
-    queue: `${RABBITMQ_EXCHANGE}.loan_request_rejected`,
+    queue: `${RABBITMQ_EXCHANGE}.loan_request_approved`,
   })
   public async loanRequestApprovedRPC(input: any) {
     const eventMessage = await this.eventMessageService.create({

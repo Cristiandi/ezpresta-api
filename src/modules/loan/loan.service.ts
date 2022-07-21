@@ -268,6 +268,7 @@ export class LoanService extends BaseService<Loan> {
     };
   }
 
+  // function to get all borrowers
   public async getAllBorrowers(input: GetAllBorrowersInput) {
     const { q, limit, skip } = input;
 
@@ -307,5 +308,24 @@ export class LoanService extends BaseService<Loan> {
     );
 
     return response;
+  }
+
+  public async loanHasBeenPaid(input: any) {
+    const { loanUid } = input;
+
+    const existingLoan = await this.getOneByFields({
+      fields: {
+        uid: loanUid,
+      },
+      checkIfExists: true,
+      loadRelationIds: false,
+    });
+
+    const preloadedLoan = await this.loanRepository.preload({
+      id: existingLoan.id,
+      paid: true,
+    });
+
+    await this.loanRepository.save(preloadedLoan);
   }
 }
