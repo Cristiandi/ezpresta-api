@@ -69,4 +69,10 @@ export class LoanController {
   getAllBorrowers(@Query() input: GetAllBorrowersInput) {
     return this.loanService.getAllBorrowers(input);
   }
+
+  @PermissionName('loans:read:admin')
+  @Get('admin/loan-amounts-by-month')
+  getLoanAmountsByMonth() {
+    return this.loanService.getLoanAmountsByMonth();
+  }
 }

@@ -328,4 +328,28 @@ export class LoanService extends BaseService<Loan> {
 
     await this.loanRepository.save(preloadedLoan);
   }
+
+  public async getLoanAmountsByMonth() {
+    const query = this.loanRepository
+      .createQueryBuilder('l')
+      .select([
+        `extract(month from l.start_date) as month`,
+        'extract(year from l.start_date) as year',
+        'sum(l.amount) as amount',
+      ])
+      .groupBy('month, year')
+      .orderBy('year, month')
+      .limit(12);
+
+    const loansAmountsByMonth = await query.getRawMany();
+
+    const loansAmountsByMonthParsed = loansAmountsByMonth.map((item) => {
+      return {
+        ...item,
+        amount: parseFloat(item.amount),
+      };
+    });
+
+    return loansAmountsByMonthParsed;
+  }
 }
