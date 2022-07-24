@@ -329,7 +329,7 @@ export class LoanService extends BaseService<Loan> {
     await this.loanRepository.save(preloadedLoan);
   }
 
-  public async getLoanAmountsByMonth() {
+  public async getTotalBorrowedPerMonth() {
     const query = this.loanRepository
       .createQueryBuilder('l')
       .select([
@@ -341,15 +341,37 @@ export class LoanService extends BaseService<Loan> {
       .orderBy('year, month')
       .limit(12);
 
-    const loansAmountsByMonth = await query.getRawMany();
+    const loanAmountsByMonth = await query.getRawMany();
 
-    const loansAmountsByMonthParsed = loansAmountsByMonth.map((item) => {
+    const loanAmountsByMonthParsed = loanAmountsByMonth.map((item) => {
       return {
         ...item,
         amount: parseFloat(item.amount),
       };
     });
 
-    return loansAmountsByMonthParsed;
+    return loanAmountsByMonthParsed;
+  }
+
+  public async getTotalByTypes() {
+    const query = this.loanRepository
+      .createQueryBuilder('l')
+      .select(['mt.name as movementTypeName', 'abs(sum(m.amount)) as total'])
+      .innerJoin('l.movements', 'm')
+      .innerJoin('m.movementType', 'mt')
+      .where('l.paid = :paid', { paid: false })
+      .orderBy('mt.id')
+      .groupBy('mt.id');
+
+    const totalByTypes = await query.getRawMany();
+
+    const totalByTypesParsed = totalByTypes.map((item) => {
+      return {
+        ...item,
+        total: parseFloat(item.total),
+      };
+    });
+
+    return totalByTypesParsed;
   }
 }

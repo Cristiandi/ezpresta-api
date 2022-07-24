@@ -70,9 +70,17 @@ export class LoanController {
     return this.loanService.getAllBorrowers(input);
   }
 
+  @CacheTTL(3600 * 24)
   @PermissionName('loans:read:admin')
-  @Get('admin/loan-amounts-by-month')
-  getLoanAmountsByMonth() {
-    return this.loanService.getLoanAmountsByMonth();
+  @Get('admin/total-borrowed-per-month')
+  getTotalBorrowedPerMonth() {
+    return this.loanService.getTotalBorrowedPerMonth();
+  }
+
+  @CacheTTL(3600)
+  @PermissionName('loans:read:admin')
+  @Get('admin/total-by-types')
+  getTotalByTypes() {
+    return this.loanService.getTotalByTypes();
   }
 }
