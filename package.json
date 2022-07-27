@@ -5,6 +5,10 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": "16.16.0",
+    "npm": "8.15.0"
+  },
   "scripts": {
     "postinstall": "husky install",
     "prebuild": "rimraf dist",
