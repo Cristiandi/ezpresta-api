@@ -50,4 +50,7 @@ export default Joi.object({
   REDIS_HOST: Joi.required(),
   REDIS_PORT: Joi.number().default(6379),
   REDIS_PASSWORD: Joi.required(),
+
+  // MESSAGEBIRD
+  MESSAGEBIRD_API_KEY: Joi.required(),
 });
