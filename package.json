@@ -50,6 +50,7 @@
     "hash-wasm": "4.9.0",
     "joi": "17.6.0",
     "mailgun.js": "7.0.4",
+    "messagebird": "3.8.1",
     "mjml": "4.13.0",
     "mongoose": "6.4.3",
     "ncp": "2.0.0",

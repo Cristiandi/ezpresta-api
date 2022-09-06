@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const messagebird = require('messagebird');
 import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 import { ConfigType } from '@nestjs/config';
@@ -21,6 +23,7 @@ const RABBITMQ_EXCHANGE = getRabbitMQExchangeName();
 @Injectable()
 export class NotificationService {
   private twilioClient: twilio.Twilio;
+  private messagebirdClient;
 
   constructor(
     @Inject(appConfig.KEY)
@@ -33,8 +36,10 @@ export class NotificationService {
   ) {
     const {
       twilio: { accountSid, authToken },
+      messagebird: { apiKey },
     } = this.appConfiguration;
     this.twilioClient = twilio(accountSid, authToken);
+    this.messagebirdClient = messagebird(apiKey);
   }
 
   @RabbitRPC({
@@ -84,13 +89,49 @@ export class NotificationService {
         twilio: { messagingServiceSid },
       } = this.appConfiguration;
 
-      const { sid } = await this.twilioClient.messages.create({
-        body: message,
-        messagingServiceSid,
-        to: `+57${user.phone}`,
-      });
+      // try to send the sms with the twilio client
+      let useMessageBird = false;
 
-      Logger.log(`twilio message sent: ${sid}`, NotificationService.name);
+      try {
+        const { sid } = await this.twilioClient.messages.create({
+          body: message,
+          messagingServiceSid,
+          to: `+57${user.phone}`,
+        });
+
+        Logger.log(`twilio message sent: ${sid}`, NotificationService.name);
+      } catch (error) {
+        await this.eventMessageService.setError({
+          id: eventMessage._id,
+          error,
+        });
+
+        useMessageBird = true;
+      }
+
+      // if the twilio client fails, try to send the sms with the messagebird client
+      if (useMessageBird) {
+        this.messagebirdClient.messages.create(
+          {
+            originator: 'EZPresta',
+            recipients: [`+57${user.phone}`],
+            body: message,
+          },
+          async (error, response) => {
+            if (error) {
+              await this.eventMessageService.setError({
+                id: eventMessage._id,
+                error,
+              });
+            } else {
+              Logger.log(
+                `messagebird message sent: ${response.id}`,
+                NotificationService.name,
+              );
+            }
+          },
+        );
+      }
     } catch (error) {
       const message = error.message;
 

@@ -54,5 +54,8 @@ export default registerAs('config', () => {
       port: process.env.REDIS_PORT,
       password: process.env.REDIS_PASSWORD,
     },
+    messagebird: {
+      apiKey: process.env.MESSAGEBIRD_API_KEY,
+    },
   };
 });
