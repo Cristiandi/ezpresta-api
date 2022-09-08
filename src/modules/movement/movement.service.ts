@@ -44,6 +44,7 @@ import { GetLoanPaymentsParamsInput } from './dto/get-loan-payments-params-input
 import { GetLoanPaymentsQueryInput } from './dto/get-loan-payments-query-input.dto';
 import { GetLoanMovementsParamsInput } from './dto/get-loan-movements-params-input.dto';
 import { GetLoanMovementsQueryInput } from './dto/get-loan-movements-query-input.dto';
+import { LastPaymentsWereInterestTypeInput } from './dto/last-payments-were-interest-type-input.dto';
 
 const RABBITMQ_EXCHANGE = getRabbitMQExchangeName();
 const MAXIMUM_AMOUNT_TO_FORGIVE = 100;
@@ -101,7 +102,7 @@ export class MovementService extends BaseService<Movement> {
   public async createPaymentMovement(
     input: CreatePaymentMovementInput,
   ): Promise<Movement> {
-    const { loanUid } = input;
+    const { loanUid, amount, paymentDate } = input;
 
     // get the loan movement
     const loanMovement = await this.getLoanMovement({
@@ -114,20 +115,11 @@ export class MovementService extends BaseService<Movement> {
       );
     }
 
-    // get the movement type
-    const paymentType = await this.movementTypeService.getOneByFields({
-      fields: { code: '04P' },
-      checkIfExists: true,
-      loadRelationIds: false,
-    });
-
-    // create the loan movement
-    const { amount } = input;
-
     // check if the payment amount is greater than the minimum loan payment amount
-    const minimumLoanPaymentAmount = await this.getMinimumLoanPaymentAmount({
-      loanUid,
-    });
+    const { amount: minimumLoanPaymentAmount, type: minimumLoanPaymentType } =
+      await this.getMinimumLoanPaymentAmount({
+        loanUid,
+      });
 
     if (amount < minimumLoanPaymentAmount) {
       throw new ConflictException(
@@ -135,16 +127,57 @@ export class MovementService extends BaseService<Movement> {
       );
     }
 
+    // get the movement type
+    const [paymentType, paymentInterestType] = await Promise.all([
+      this.movementTypeService.getOneByFields({
+        fields: { code: '04P' },
+        checkIfExists: true,
+        loadRelationIds: false,
+      }),
+      this.movementTypeService.getOneByFields({
+        fields: { code: '05PI' },
+        checkIfExists: true,
+        loadRelationIds: false,
+      }),
+    ]);
+
+    let movementType = paymentType;
+
+    // if the minimum loan payment type is capital means that the minimum loan payment amount
+    // includes the interest amount and 1% of the loan amount to settle interest so the payment
+    // covers the interest amount and the capital amount
+    if (minimumLoanPaymentType === 'capital') {
+      movementType = paymentType;
+    } else if (minimumLoanPaymentType === 'interest') {
+      const onePercentOfLoanAmountToSettleInterest =
+        await this.getNPercentOfLoanAmountToSettleInterest({
+          loanUid,
+          percent: 1,
+        });
+
+      // if the amount of the payment is not greater than the minimum loan payment amount +
+      // 1% of the loan amount to settle interest that means that the payment is for just interest
+      if (
+        amount - minimumLoanPaymentAmount <
+        onePercentOfLoanAmountToSettleInterest
+      ) {
+        movementType = paymentInterestType;
+      }
+    }
+
+    Logger.log(
+      `the movement type is ${movementType.name} for the payment`,
+      MovementService.name,
+    );
+
     // create the movement
     const { loan } = loanMovement;
-
-    const { paymentDate } = input;
 
     const parsedPaymentDate = new Date(paymentDate);
 
     const created = this.movementRepository.create({
       loan: loan,
-      movementType: paymentType,
+      movementType,
       amount: amount * -1,
       at: addMinutes(parsedPaymentDate, parsedPaymentDate.getTimezoneOffset()),
     });
@@ -215,16 +248,9 @@ export class MovementService extends BaseService<Movement> {
   ): Promise<Movement | undefined> {
     const { loanUid } = input;
 
-    const [loanMovement, paymentType] = await Promise.all([
-      this.getLoanMovement({
-        loanUid,
-      }),
-      this.movementTypeService.getOneByFields({
-        fields: { code: '04P' },
-        checkIfExists: true,
-        loadRelationIds: false,
-      }),
-    ]);
+    const loanMovement = await this.getLoanMovement({
+      loanUid,
+    });
 
     if (!loanMovement) {
       throw new NotFoundException(
@@ -237,10 +263,9 @@ export class MovementService extends BaseService<Movement> {
     // get the last payment movement
     const query = this.movementRepository
       .createQueryBuilder('m')
+      .innerJoinAndSelect('m.movementType', 'mt')
       .where('m.loan = :loanId', { loanId: loan.id })
-      .andWhere('m.movementType = :movementTypeId', {
-        movementTypeId: paymentType.id,
-      })
+      .andWhere('mt.code IN (:...codes)', { codes: ['04P', '05PI'] })
       .orderBy('m.at', 'DESC')
       .limit(1);
 
@@ -253,7 +278,6 @@ export class MovementService extends BaseService<Movement> {
     return {
       ...lastPaymentMovement,
       loan,
-      movementType: paymentType,
     } as Movement;
   }
 
@@ -491,7 +515,7 @@ export class MovementService extends BaseService<Movement> {
   // this function returns the minimum paument amount of the loan
   public async getMinimumLoanPaymentAmount(
     input: GetMinimumLoanPaymentAmountInput,
-  ): Promise<number> {
+  ): Promise<{ amount: number; type: string }> {
     const { loanUid } = input;
 
     // get the loan movement
@@ -513,6 +537,24 @@ export class MovementService extends BaseService<Movement> {
     if (lastPaymentMovement) {
       const { movementType: paymentType } = lastPaymentMovement;
 
+      // check if the last N payments are Pago Interes type
+      const lastPaymentsWereInterestType =
+        await this.lastPaymentsWereInterestType({
+          loanUid,
+          numberOfPayments: 3,
+        });
+
+      let extraAmount = 0;
+
+      // if so...
+      if (lastPaymentsWereInterestType) {
+        // get the 1% of the loan value to settle interest
+        extraAmount = await this.getNPercentOfLoanAmountToSettleInterest({
+          loanUid,
+          percent: 1,
+        });
+      }
+
       const query = this.movementRepository
         .createQueryBuilder('m')
         .select('COALESCE(SUM(m.amount), 0)', 'amount')
@@ -526,7 +568,15 @@ export class MovementService extends BaseService<Movement> {
 
       const { amount } = await query.getRawOne();
 
-      return parseFloat(amount);
+      Logger.log(
+        `loan ${loanUid} | amount ${amount} | extraAmount ${extraAmount}`,
+        MovementService.name,
+      );
+
+      return {
+        amount: parseFloat(amount) + extraAmount,
+        type: lastPaymentsWereInterestType ? 'capital' : 'interest',
+      };
     }
 
     // in case there is no payment, we need to get all the interests generated
@@ -540,7 +590,10 @@ export class MovementService extends BaseService<Movement> {
 
     const { amount } = await query.getRawOne();
 
-    return amount ? parseFloat(amount) : amount;
+    return {
+      amount: parseFloat(amount),
+      type: 'interest',
+    };
   }
 
   // this function returns the loan payment date
@@ -678,6 +731,7 @@ export class MovementService extends BaseService<Movement> {
     return parseFloat(totalAmount);
   }
 
+  // this function returns the loan payment movements
   public async getLoanPayments(
     paramsInput: GetLoanPaymentsParamsInput,
     queryInput: GetLoanPaymentsQueryInput,
@@ -717,6 +771,7 @@ export class MovementService extends BaseService<Movement> {
     return payments;
   }
 
+  // this function returns the loan movements
   public async getLoanMovements(
     paramsInput: GetLoanMovementsParamsInput,
     queryInput: GetLoanMovementsQueryInput,
@@ -756,5 +811,59 @@ export class MovementService extends BaseService<Movement> {
     const movements = await query.getMany();
 
     return movements;
+  }
+
+  // this function tells if the las n payments were interest payments
+  public async lastPaymentsWereInterestType(
+    input: LastPaymentsWereInterestTypeInput,
+  ): Promise<boolean> {
+    const { loanUid, numberOfPayments } = input;
+
+    // const get the movement type
+    const interestPaymentType = await this.movementTypeService.getOneByFields({
+      fields: { code: '05PI' },
+      checkIfExists: true,
+      loadRelationIds: false,
+    });
+
+    // get the payment movements of the loan
+    const paymentMovements = await this.movementRepository
+      .createQueryBuilder('m')
+      .innerJoin('m.loan', 'l')
+      .innerJoinAndSelect('m.movementType', 'mt')
+      .where('l.uid = :loanUid', { loanUid })
+      .andWhere('mt.code IN (:...codes)', { codes: ['04P', '05PI'] })
+      .orderBy('m.at', 'DESC')
+      .limit(numberOfPayments)
+      .getMany();
+
+    if (paymentMovements.length < numberOfPayments) {
+      return false;
+    }
+
+    return paymentMovements.every(
+      (paymentMovement) =>
+        paymentMovement.movementType.id === interestPaymentType.id,
+    );
+  }
+
+  public async getNPercentOfLoanAmountToSettleInterest(input: {
+    loanUid: string;
+    percent: number;
+  }): Promise<number> {
+    const { loanUid, percent } = input;
+
+    // get the loan value to settle interest
+    const loanAmountToSettleInterest = await this.getLoanAmountToSettleInterest(
+      {
+        loanUid,
+        settlementDate: new Date(),
+      },
+    );
+
+    // get the 1% of the loan value to settle interest
+    const result = loanAmountToSettleInterest * (percent / 100);
+
+    return result;
   }
 }
