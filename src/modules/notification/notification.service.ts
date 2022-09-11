@@ -84,13 +84,33 @@ export class NotificationService {
         `recuerda ponerte al día pagando ` +
         `minimo ${formatCurrency(minimumLoanPaymentAmount)}`;
 
+      // try to send the sms with messagebird client
+      this.messagebirdClient.messages.create(
+        {
+          originator: 'EZPresta',
+          recipients: [`+57${user.phone}`],
+          body: message,
+        },
+        async (error, response) => {
+          if (error) {
+            await this.eventMessageService.setError({
+              id: eventMessage._id,
+              error,
+            });
+          } else {
+            Logger.log(
+              `messagebird message sent: ${response.id}`,
+              NotificationService.name,
+            );
+          }
+        },
+      );
+
+      /* I commented this because I'm not using since messagebird is cheaper
       // send the sms to the user using the twilio client
       const {
         twilio: { messagingServiceSid },
       } = this.appConfiguration;
-
-      // try to send the sms with the twilio client
-      let useMessageBird = false;
 
       try {
         const { sid } = await this.twilioClient.messages.create({
@@ -105,33 +125,8 @@ export class NotificationService {
           id: eventMessage._id,
           error,
         });
-
-        useMessageBird = true;
       }
-
-      // if the twilio client fails, try to send the sms with the messagebird client
-      if (useMessageBird) {
-        this.messagebirdClient.messages.create(
-          {
-            originator: 'EZPresta',
-            recipients: [`+57${user.phone}`],
-            body: message,
-          },
-          async (error, response) => {
-            if (error) {
-              await this.eventMessageService.setError({
-                id: eventMessage._id,
-                error,
-              });
-            } else {
-              Logger.log(
-                `messagebird message sent: ${response.id}`,
-                NotificationService.name,
-              );
-            }
-          },
-        );
-      }
+      */
     } catch (error) {
       const message = error.message;
 
