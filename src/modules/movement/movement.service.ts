@@ -337,24 +337,33 @@ export class MovementService extends BaseService<Movement> {
       const { loan } = loanMovement;
 
       // get the movement types
-      const [interestType, overdueInterestType, paymentType] =
-        await Promise.all([
-          this.movementTypeService.getOneByFields({
-            fields: { code: '02IC' },
-            checkIfExists: true,
-            loadRelationIds: false,
-          }),
-          this.movementTypeService.getOneByFields({
-            fields: { code: '03IM' },
-            checkIfExists: true,
-            loadRelationIds: false,
-          }),
-          this.movementTypeService.getOneByFields({
-            fields: { code: '04P' },
-            checkIfExists: true,
-            loadRelationIds: false,
-          }),
-        ]);
+      const [
+        interestType,
+        overdueInterestType,
+        paymentType,
+        paymentInterestType,
+      ] = await Promise.all([
+        this.movementTypeService.getOneByFields({
+          fields: { code: '02IC' },
+          checkIfExists: true,
+          loadRelationIds: false,
+        }),
+        this.movementTypeService.getOneByFields({
+          fields: { code: '03IM' },
+          checkIfExists: true,
+          loadRelationIds: false,
+        }),
+        this.movementTypeService.getOneByFields({
+          fields: { code: '04P' },
+          checkIfExists: true,
+          loadRelationIds: false,
+        }),
+        this.movementTypeService.getOneByFields({
+          fields: { code: '05PI' },
+          checkIfExists: true,
+          loadRelationIds: false,
+        }),
+      ]);
 
       // get the last interest movement and the last payment movement
       const [lastInterestMovement, lastPaymentMovement] = await Promise.all([
@@ -369,8 +378,8 @@ export class MovementService extends BaseService<Movement> {
         this.movementRepository
           .createQueryBuilder('m')
           .where('m.loan = :loanId', { loanId: loan.id })
-          .andWhere('m.movementType = :movementTypeId', {
-            movementTypeId: paymentType.id,
+          .andWhere('m.movementType IN (:...ids)', {
+            ids: [paymentType.id, paymentInterestType.id],
           })
           .orderBy('m.at', 'DESC')
           .getOne(),
