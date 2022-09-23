@@ -137,21 +137,18 @@ export class LoanService extends BaseService<Loan> {
       loans.map(async (loan) => {
         const { uid } = loan;
 
-        const [
-          { amount: minimumLoanPaymentAmount },
-          loanPaymentDate,
-          loanPaymentStatus,
-        ] = await Promise.all([
-          this.movementService.getMinimumLoanPaymentAmount({
-            loanUid: uid,
-          }),
-          this.movementService.getLoanPaymentDate({
-            loanUid: uid,
-          }),
-          this.movementService.getLoanPaymentStatus({
-            loanUid: uid,
-          }),
-        ]);
+        const [minimumLoanPaymentAmount, loanPaymentDate, loanPaymentStatus] =
+          await Promise.all([
+            this.movementService.getMinimumLoanPaymentAmount({
+              loanUid: uid,
+            }),
+            this.movementService.getLoanPaymentDate({
+              loanUid: uid,
+            }),
+            this.movementService.getLoanPaymentStatus({
+              loanUid: uid,
+            }),
+          ]);
 
         return {
           id: loan.id,
@@ -182,7 +179,7 @@ export class LoanService extends BaseService<Loan> {
     });
 
     const [
-      { amount: minimumLoanPaymentAmount },
+      minimumLoanPaymentAmount,
       loanPaymentDate,
       loanPaymentStatus,
       totalLoanAmount,
@@ -238,15 +235,16 @@ export class LoanService extends BaseService<Loan> {
     const { totalLoansAmount, totalLoansMinimumPaymentAmount } =
       await existingLoans.reduce(
         async (pre, cur) => {
-          const [{ amount: minimumLoanPaymentAmount }, totalLoanAmount] =
-            await Promise.all([
+          const [minimumLoanPaymentAmount, totalLoanAmount] = await Promise.all(
+            [
               this.movementService.getMinimumLoanPaymentAmount({
                 loanUid: cur.uid,
               }),
               this.movementService.getTotalLoanAmount({
                 loanUid: cur.uid,
               }),
-            ]);
+            ],
+          );
 
           const resolvedPre = await pre;
 

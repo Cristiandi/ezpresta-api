@@ -67,7 +67,7 @@ export class NotificationService {
       });
 
       // get the minimul payment amount
-      const { amount: minimumLoanPaymentAmount } =
+      const minimumLoanPaymentAmount =
         await this.movementService.getMinimumLoanPaymentAmount({
           loanUid,
         });
@@ -171,7 +171,7 @@ export class NotificationService {
       const { movementType } = existingMovement;
 
       // TODO:  use a parameter instead of hardcoded value
-      if (!['04P', '05PI'].includes(movementType.code)) {
+      if (!['04P'].includes(movementType.code)) {
         throw new ConflictException(
           `the movement ${movementUid} is not a payment`,
           NotificationService.name,
