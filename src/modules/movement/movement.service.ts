@@ -531,7 +531,7 @@ export class MovementService extends BaseService<Movement> {
       .andWhere('m.movementType IN (:...movementTypeIds)', {
         movementTypeIds: [interestType.id, overdueInterestType.id],
       })
-      .andWhere('m.at >= :settlementDate', {
+      .andWhere('m.at > :settlementDate', {
         settlementDate: referenceDate,
       });
 
