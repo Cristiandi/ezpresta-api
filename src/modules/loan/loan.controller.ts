@@ -1,13 +1,10 @@
 import {
   Body,
-  CacheInterceptor,
-  CacheTTL,
   Controller,
   Get,
   Param,
   Post,
   Query,
-  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -17,13 +14,14 @@ import { Loan } from './loan.entity';
 
 import { LoanService } from './loan.service';
 
+import { RedisCacheTTL } from '../../plugins/redis-cache/decorators/redis-cache-ttl.decorator';
+
 import { CreateLoanInput } from './dto/create-loan-input.dto';
 import { GetUserLoansParamsInput } from './dto/get-user-loans-params-input.dto';
 import { GetUserLoansQueryInput } from './dto/get-user-loans-query-input.dto';
 import { GetLoanDetailsInput } from './dto/get-loan-details-input.dto';
 import { GetAllBorrowersInput } from './dto/get-all-borrowers-input.dto';
 
-@UseInterceptors(CacheInterceptor)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 @Controller('loans')
 export class LoanController {
@@ -56,28 +54,28 @@ export class LoanController {
     return this.loanService.getLoanDetails(params);
   }
 
-  @CacheTTL(3600 * 24)
+  @RedisCacheTTL(3600 * 24)
   @PermissionName('loans:admin:read')
   @Get('overview')
   getOverview() {
     return this.loanService.getOverview();
   }
 
-  @CacheTTL(3600)
+  @RedisCacheTTL(3600)
   @PermissionName('loans:read:admin')
   @Get('admin/borrowers')
   getAllBorrowers(@Query() input: GetAllBorrowersInput) {
     return this.loanService.getAllBorrowers(input);
   }
 
-  @CacheTTL(3600 * 24)
+  @RedisCacheTTL(3600 * 24)
   @PermissionName('loans:read:admin')
   @Get('admin/total-borrowed-per-month')
   getTotalBorrowedPerMonth() {
     return this.loanService.getTotalBorrowedPerMonth();
   }
 
-  @CacheTTL(3600)
+  @RedisCacheTTL(3600)
   @PermissionName('loans:read:admin')
   @Get('admin/total-by-types')
   getTotalByTypes() {

@@ -1,12 +1,10 @@
 import {
   Body,
-  CacheInterceptor,
   Controller,
   Get,
   Param,
   Post,
   Query,
-  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -21,7 +19,6 @@ import { GetLoanPaymentsQueryInput } from './dto/get-loan-payments-query-input.d
 import { GetLoanMovementsParamsInput } from './dto/get-loan-movements-params-input.dto';
 import { GetLoanMovementsQueryInput } from './dto/get-loan-movements-query-input.dto';
 
-@UseInterceptors(CacheInterceptor)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 @Controller('movements')
 export class MovementController {

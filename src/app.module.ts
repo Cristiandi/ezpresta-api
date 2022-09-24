@@ -1,5 +1,4 @@
-import * as redisStore from 'cache-manager-redis-store';
-import { CacheModule, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -21,6 +20,7 @@ import { LoanRequestModule } from './modules/loan-request/loan-request.module';
 import { EpaycoTransactionModule } from './modules/epayco-transaction/epayco-transaction.module';
 import { MailingModule } from './plugins/mailing/mailing.module';
 import { EventMessageModule } from './modules/event-message/event-message.module';
+import { RedisCacheModule } from './plugins/redis-cache/redis-cache.module';
 
 @Module({
   imports: [
@@ -55,7 +55,11 @@ import { EventMessageModule } from './modules/event-message/event-message.module
       },
     }),
 
+    // Redis cache
+    RedisCacheModule,
+
     // Cache
+    /*
     CacheModule.register({
       isGlobal: true,
       store: redisStore,
@@ -63,8 +67,9 @@ import { EventMessageModule } from './modules/event-message/event-message.module
       host: process.env.REDIS_HOST,
       port: +process.env.REDIS_PORT,
       password: process.env.REDIS_PASSWORD,
-      ttl: 60,
+      ttl: 1,
     }),
+    */
 
     /*
     CacheModule.registerAsync({

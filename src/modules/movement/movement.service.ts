@@ -44,7 +44,6 @@ import { GetLoanPaymentsParamsInput } from './dto/get-loan-payments-params-input
 import { GetLoanPaymentsQueryInput } from './dto/get-loan-payments-query-input.dto';
 import { GetLoanMovementsParamsInput } from './dto/get-loan-movements-params-input.dto';
 import { GetLoanMovementsQueryInput } from './dto/get-loan-movements-query-input.dto';
-import { LastPaymentsWereInterestTypeInput } from './dto/last-payments-were-interest-type-input.dto';
 
 const RABBITMQ_EXCHANGE = getRabbitMQExchangeName();
 const MAXIMUM_AMOUNT_TO_FORGIVE = 100;
