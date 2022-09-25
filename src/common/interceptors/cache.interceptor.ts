@@ -31,15 +31,17 @@ export class CacheInterceptor implements NestInterceptor {
     next: CallHandler,
   ): Promise<Observable<any>> {
     const shouldSkip = isRabbitContext(context);
-    if (shouldSkip) next.handle();
+    if (shouldSkip) return next.handle();
 
-    const defaultTTL = this.appConfiguration.environment === 'local' ? 5 : 60;
+    // if we're in local mode, skip the cache
+    if (this.appConfiguration.environment === 'local') {
+      return next.handle();
+    }
 
     // check if the request is public
-    const redisCacheTTL = this.reflector.get<number>(
-      REDIS_CACHE_TTL_KEY,
-      context.getHandler(),
-    );
+    const redisCacheTTL =
+      this.reflector.get<number>(REDIS_CACHE_TTL_KEY, context.getHandler()) ||
+      60;
 
     // get the request from the context
     const request = context.switchToHttp().getRequest<Request>();
@@ -74,7 +76,7 @@ export class CacheInterceptor implements NestInterceptor {
               path,
             },
             value: data,
-            ttl: redisCacheTTL || defaultTTL,
+            ttl: redisCacheTTL,
           })
           .catch((error) => {
             console.error(error);
