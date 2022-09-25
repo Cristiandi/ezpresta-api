@@ -54,7 +54,7 @@ export class CacheInterceptor implements NestInterceptor {
 
     const { environment } = this.appConfiguration;
 
-    const userIp = request?.connection?.remoteAddress || request?.ip;
+    const userIp = request?.socket?.remoteAddress || request?.ip || 'unknown';
 
     const { method, path } = request;
 
