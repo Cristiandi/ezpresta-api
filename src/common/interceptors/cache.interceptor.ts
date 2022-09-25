@@ -9,6 +9,7 @@ import { ConfigType } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { map, Observable, of } from 'rxjs';
+import { isRabbitContext } from '@golevelup/nestjs-rabbitmq';
 
 import appConfig from '../../config/app.config';
 
@@ -29,6 +30,9 @@ export class CacheInterceptor implements NestInterceptor {
     context: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<any>> {
+    const shouldSkip = isRabbitContext(context);
+    if (shouldSkip) next.handle();
+
     const defaultTTL = this.appConfiguration.environment === 'local' ? 5 : 60;
 
     // check if the request is public
@@ -42,7 +46,7 @@ export class CacheInterceptor implements NestInterceptor {
 
     const { environment } = this.appConfiguration;
 
-    const userIp = request.connection.remoteAddress || request.ip;
+    const userIp = request?.connection?.remoteAddress || request?.ip;
 
     const { method, path } = request;
 
