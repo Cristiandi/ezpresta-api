@@ -39,9 +39,15 @@ export class CacheInterceptor implements NestInterceptor {
     }
 
     // check if the request is public
-    const redisCacheTTL =
-      this.reflector.get<number>(REDIS_CACHE_TTL_KEY, context.getHandler()) ||
-      60;
+    const redisCacheTTL = this.reflector.get<number>(
+      REDIS_CACHE_TTL_KEY,
+      context.getHandler(),
+    );
+
+    // if the redis cache ttl is 0, skip the cache
+    if (redisCacheTTL === 0) {
+      return next.handle();
+    }
 
     // get the request from the context
     const request = context.switchToHttp().getRequest<Request>();
@@ -76,7 +82,7 @@ export class CacheInterceptor implements NestInterceptor {
               path,
             },
             value: data,
-            ttl: redisCacheTTL,
+            ttl: redisCacheTTL || 60,
           })
           .catch((error) => {
             console.error(error);
