@@ -1,11 +1,12 @@
 import * as redisStore from 'cache-manager-redis-store';
 
+import type { ClientOpts } from 'redis';
 import { Module, CacheModule } from '@nestjs/common';
 import { RedisCacheService } from './redis-cache.service';
 
 @Module({
   imports: [
-    CacheModule.registerAsync({
+    CacheModule.registerAsync<ClientOpts>({
       useFactory: () => {
         return {
           store: redisStore,

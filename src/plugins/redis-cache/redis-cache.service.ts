@@ -23,7 +23,7 @@ export class RedisCacheService {
 
     // const newValue = JSON.stringify(value);
 
-    await this.cacheManager.set(KEY_PREFIX + md5Key, value, { ttl });
+    await this.cacheManager.set(KEY_PREFIX + md5Key, value, ttl);
   }
 
   public async get(input: GetInput): Promise<Record<string, any> | null> {
