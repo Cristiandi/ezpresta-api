@@ -33,13 +33,13 @@ export class LoanController {
     return this.loanService.create(input);
   }
 
-  @RedisCacheTTL(0)
   @PermissionName('loans:execute')
   @Post('interest-settlement')
   interestSettlement(): Promise<void> {
     return this.loanService.interestSettlement();
   }
 
+  @RedisCacheTTL(0)
   @PermissionName('loans:read')
   @Get('user-loans/:userAuthUid')
   getUserLoans(

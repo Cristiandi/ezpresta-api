@@ -30,6 +30,7 @@ export class CacheInterceptor implements NestInterceptor {
     context: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<any>> {
+    // if the request is coming from rabbitmq, we don't want to cache it
     const shouldSkip = isRabbitContext(context);
     if (shouldSkip) return next.handle();
 
@@ -52,17 +53,22 @@ export class CacheInterceptor implements NestInterceptor {
     // get the request from the context
     const request = context.switchToHttp().getRequest<Request>();
 
+    // if the method is not GET, skip the cache
+    const { method } = request;
+    if (method !== 'GET') {
+      return next.handle();
+    }
+
     const { environment } = this.appConfiguration;
 
     const userIp = request?.socket?.remoteAddress || request?.ip || 'unknown';
 
-    const { method, path } = request;
+    const { path } = request;
 
     const cache = await this.redisCacheService.get({
       keys: {
         environment,
         userIp,
-        method,
         path,
       },
     });
@@ -78,7 +84,6 @@ export class CacheInterceptor implements NestInterceptor {
             keys: {
               environment,
               userIp,
-              method,
               path,
             },
             value: data,
