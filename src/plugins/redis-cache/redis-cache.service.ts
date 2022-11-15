@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Logger } from '@nestjs/common/services';
 import { createClient, RedisClientType } from 'redis';
 
 import { GetInput } from './dto/get-input.dto';
@@ -23,7 +24,10 @@ export class RedisCacheService {
       password: process.env.REDIS_PASSWORD,
     });
 
-    this.client.on('error', (err) => console.error('Redis Client Error', err));
+    this.client.on('error', (err) => {
+      Logger.error(`Redis Client Error: ${err}`, RedisCacheService.name);
+      throw err;
+    });
 
     await this.client.connect();
   }
