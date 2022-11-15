@@ -1,6 +1,5 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
-import { Cache } from 'cache-manager';
-import { md5 } from 'hash-wasm';
+import { Injectable } from '@nestjs/common';
+import { createClient, RedisClientType } from 'redis';
 
 import { GetInput } from './dto/get-input.dto';
 
@@ -10,7 +9,24 @@ const KEY_PREFIX = 'ezpresta_';
 
 @Injectable()
 export class RedisCacheService {
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  private client: RedisClientType;
+  constructor() {
+    this.init();
+  }
+
+  private async init() {
+    this.client = createClient({
+      socket: {
+        host: process.env.REDIS_HOST,
+        port: +process.env.REDIS_PORT,
+      },
+      password: process.env.REDIS_PASSWORD,
+    });
+
+    this.client.on('error', (err) => console.error('Redis Client Error', err));
+
+    await this.client.connect();
+  }
 
   public async set(input: SetInput): Promise<void> {
     const { keys, value, ttl = 0 } = input;
@@ -19,29 +35,29 @@ export class RedisCacheService {
       .map((key) => keys[key])
       .join(':');
 
-    const md5Key = await md5(key);
+    const newValue = JSON.stringify(value);
 
-    // const newValue = JSON.stringify(value);
-
-    await this.cacheManager.set(KEY_PREFIX + md5Key, value, ttl);
+    await this.client.set(KEY_PREFIX + key, newValue, {
+      EX: ttl,
+      NX: true,
+    });
   }
 
-  public async get(input: GetInput): Promise<Record<string, any> | null> {
+  public async get(input: GetInput) {
     const { keys } = input;
 
     const key = Object.keys(keys)
       .map((key) => keys[key])
       .join(':');
 
-    const md5Key = await md5(key);
-
-    const value = await this.cacheManager.get(KEY_PREFIX + md5Key);
+    const value = await this.client.get(KEY_PREFIX + key);
 
     if (!value) return null;
 
     try {
-      JSON.parse(value as string);
+      return JSON.parse(value as string);
     } catch (error) {
+      console.error(error);
       return value;
     }
   }
