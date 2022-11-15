@@ -1,3 +1,5 @@
+import * as requestIp from 'request-ip';
+
 import {
   Injectable,
   NestInterceptor,
@@ -61,14 +63,18 @@ export class CacheInterceptor implements NestInterceptor {
 
     const { environment } = this.appConfiguration;
 
-    const userIp = request?.socket?.remoteAddress || request?.ip || 'unknown';
+    const clientIp =
+      requestIp.getClientIp(request) ||
+      request?.socket?.remoteAddress ||
+      request?.ip ||
+      'unknown';
 
     const { path } = request;
 
     const cache = await this.redisCacheService.get({
       keys: {
         environment,
-        userIp,
+        clientIp,
         path,
       },
     });
@@ -83,7 +89,7 @@ export class CacheInterceptor implements NestInterceptor {
           .set({
             keys: {
               environment,
-              userIp,
+              clientIp,
               path,
             },
             value: data,
